@@ -15,7 +15,7 @@ Per feature (`f1|f2|f3|f5`):
 4. Output `AC/state | met/partial/missing | code path:line | test path:line`, then the top gaps.
 
 For `all`, run the per-feature audit for f1, f2, f3, f5 (one compact table each), then check:
-- Routes in `frontend/src/app/app.routes.ts`: `/monthly-planning`, `/monthly-plans/:year/:month`, `/expenses/new`, `/monthly-plans/:year/:month/spending`, plus navigation links between them.
+- Routes in `frontend/src/app/app.routes.ts`: `/monthly-planning`, `/monthly-plans/:year/:month`, `/expenses/new`, `/monthly-plans/:year/:month/spending`, `/dashboard` redirecting to the current month's spending, plus navigation links between them.
 - Typed `BudgetPlanApiService` covers all 5 endpoints, with no `any`.
 - `README.md`: prerequisites, API base URL config (`environment.ts`), backend start, `npm ci`, `ng serve --port 4400` (CORS), test and coverage commands, demo flow.
 - Coverage: run `npm --prefix frontend test -- --coverage --coverage-reporters=text-summary`. Target is >= 80%.

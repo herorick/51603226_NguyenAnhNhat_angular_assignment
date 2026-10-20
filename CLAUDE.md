@@ -14,6 +14,7 @@ Repo: https://github.com/lhpchihung/angular-training-assignment
 | F2 Income allocation | `/monthly-plans/:year/:month` | `.claude/knowledge/features/f2-income-allocation.md` |
 | F3 Add expense | `/expenses/new` | `.claude/knowledge/features/f3-add-expense.md` |
 | F5 Spending by jar | `/monthly-plans/:year/:month/spending` | `.claude/knowledge/features/f5-spending-by-jar.md` |
+| Home | `''` -> `/dashboard` -> current month spending; `**` -> `/monthly-planning` | `.claude/knowledge/discrepancies.md` #6 |
 
 ## Stack
 

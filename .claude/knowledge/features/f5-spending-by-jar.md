@@ -4,6 +4,7 @@ Sources: `docs/design/spec-f5-frontend.md` (titled "F4"; read-only view), `spec-
 Visual: the "Updated spending statistics" section of `f5-dashboard/f5-dashboard.html` (`mock_html.py ... css --grep refreshed`).
 Test cases: `test_cases.py f5`. They target the full dashboard, so apply only the per-jar ones (`discrepancies.md` #5).
 Location: `features/spending-by-jar/pages/spending-by-jar-page/`.
+Entry points: sidebar "Home" (`/dashboard`) redirects here for the current month (`discrepancies.md` #6), and F2 has a "View spending" link.
 
 ## Flow
 

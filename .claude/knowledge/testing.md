@@ -18,8 +18,8 @@ npm --prefix frontend test -- --coverage --coverage-reporters=text-summary    # 
 npm --prefix frontend run build                                               # prod build (catches strictTemplates + style budget)
 ```
 
-Report only the summary lines (`Test Files`, `Tests`, coverage `Statements/Branches/Functions/Lines`). Target is >= 80%.
-Optional gate: add `"coverageThresholds": { "statements": 80, "lines": 80, "functions": 80, "branches": 80 }` to `angular.json` test options. That edits project config, so ask first.
+Report only the summary lines (`Test Files`, `Tests`, coverage `Statements/Branches/Functions/Lines`).
+`angular.json` test options set `coverageThresholds` to 80 for all four metrics. Coverage runs fail below 80%; plain `test` runs are unaffected.
 
 ## Patterns
 
