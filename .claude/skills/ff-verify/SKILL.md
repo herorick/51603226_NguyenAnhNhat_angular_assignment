@@ -15,7 +15,7 @@ Verify the Angular frontend. Arguments: `$ARGUMENTS` (optional spec glob, option
 
 Run from the repo root. Never `cd`. Never paste full logs.
 
-1. If `frontend/node_modules` is missing, run `npm --prefix frontend ci`.
+1. If `frontend/node_modules` is missing, run `npm --prefix frontend install`.
 2. Tests:
    - With a spec glob: `npm --prefix frontend test -- --include="<glob>"`.
    - Without one: `npm --prefix frontend test -- --coverage --coverage-reporters=text-summary`.

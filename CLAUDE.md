@@ -18,14 +18,14 @@ Repo: https://github.com/lhpchihung/angular-training-assignment
 
 ## Stack
 
-Angular 21.2 standalone, **zoneless (no zone.js)**, signals, strict TS + `strictTemplates`; Vitest + jsdom via `ng test`; global SCSS in `src/styles/`; Prettier (120 cols, single quotes, no trailing commas). No ESLint. npm. `node_modules` is not installed yet.
+Angular 21.2 standalone, **zoneless (no zone.js)**, signals, strict TS + `strictTemplates`; Vitest + jsdom via `ng test`; global SCSS in `src/styles/`; Prettier (120 cols, single quotes, no trailing commas). No ESLint. npm (`frontend/.npmrc` sets `legacy-peer-deps`, because vitest 5 conflicts with the `@angular/build` peer range).
 
 ## Commands (repo root, never `cd x && ...`)
 
 ```bash
-npm --prefix frontend ci                                                    # first time
+npm --prefix frontend install                                               # first time
 npm --prefix frontend test                                                  # unit tests
-npm --prefix frontend test -- --coverage --coverage-reporters=text-summary  # coverage (target >= 80%)
+npm --prefix frontend test -- --coverage --coverage-reporters=text-summary  # coverage; fails below 80% (angular.json thresholds)
 npm --prefix frontend run build                                             # prod build: strictTemplates + 19 kB style budget
 npm --prefix frontend start -- --port 4400                                  # dev server; backend CORS allows only :4400
 ```
@@ -62,4 +62,4 @@ Understand (brief + contract), then inspect the touched code, then a short plan 
 
 ## Deliverables
 
-Working routes with navigation · typed API service · >= 80% coverage · README (prerequisites, API base URL in `src/environments/environment.ts`, backend run, `npm ci`, serve on port 4400, test/coverage commands) · demo: create plan, view allocation, add expense, spending updated. Do not call the assignment complete until `/ff-acceptance all` says READY.
+Working routes with navigation · typed API service · >= 80% coverage · README (prerequisites, API base URL in `src/environments/environment.ts`, backend run, `npm install`, serve on port 4400, test/coverage commands) · demo: create plan, view allocation, add expense, spending updated. Do not call the assignment complete until `/ff-acceptance all` says READY.

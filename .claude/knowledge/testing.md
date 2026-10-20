@@ -11,7 +11,7 @@
 ## Commands (from repo root, no `cd`)
 
 ```bash
-npm --prefix frontend ci                                                      # first time only (node_modules absent)
+npm --prefix frontend install                                                 # first time (.npmrc supplies legacy-peer-deps)
 npm --prefix frontend test                                                    # all specs once
 npm --prefix frontend test -- --include="src/app/features/expenses/**/*.spec.ts"   # subset
 npm --prefix frontend test -- --coverage --coverage-reporters=text-summary    # coverage summary only
@@ -19,7 +19,7 @@ npm --prefix frontend run build                                               # 
 ```
 
 Report only the summary lines (`Test Files`, `Tests`, coverage `Statements/Branches/Functions/Lines`).
-`angular.json` test options set `coverageThresholds` to 80 for all four metrics. Coverage runs fail below 80%; plain `test` runs are unaffected.
+`angular.json` test options set `coverageInclude: ["src/app/**/*.ts"]`, so untested files count, and `coverageThresholds` of 80 for all four metrics. A coverage run below 80% prints `ERROR: Coverage for <metric> ... does not meet global threshold` and exits 1. Plain `test` runs are unaffected.
 
 ## Patterns
 

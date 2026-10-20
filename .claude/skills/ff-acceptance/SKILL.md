@@ -17,7 +17,7 @@ Per feature (`f1|f2|f3|f5`):
 For `all`, run the per-feature audit for f1, f2, f3, f5 (one compact table each), then check:
 - Routes in `frontend/src/app/app.routes.ts`: `/monthly-planning`, `/monthly-plans/:year/:month`, `/expenses/new`, `/monthly-plans/:year/:month/spending`, `/dashboard` redirecting to the current month's spending, plus navigation links between them.
 - Typed `BudgetPlanApiService` covers all 5 endpoints, with no `any`.
-- `README.md`: prerequisites, API base URL config (`environment.ts`), backend start, `npm ci`, `ng serve --port 4400` (CORS), test and coverage commands, demo flow.
+- `README.md`: prerequisites, API base URL config (`environment.ts`), backend start, `npm install` (`.npmrc` legacy-peer-deps), `ng serve --port 4400` (CORS), test and coverage commands, demo flow.
 - Coverage: run `npm --prefix frontend test -- --coverage --coverage-reporters=text-summary`. Target is >= 80%.
 - Demo flow possible: create plan, view allocation, add expense, spending updated.
 - `OPEN` items still unresolved in `.claude/knowledge/discrepancies.md`.

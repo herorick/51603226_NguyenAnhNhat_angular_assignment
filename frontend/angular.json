@@ -96,6 +96,7 @@
             "tsConfig": "tsconfig.spec.json",
             "runner": "vitest",
             "watch": false,
+            "coverageInclude": ["src/app/**/*.ts"],
             "coverageThresholds": {
               "statements": 80,
               "branches": 80,

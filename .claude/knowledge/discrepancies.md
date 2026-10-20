@@ -19,3 +19,5 @@ Verified 2026-10-20. Code (`backend/`) wins over specs for wire contracts. Mark 
 | 13 | `backend/FamilyFinance.Api/README.md` POST example uses old fields (`monthlyIncome`, `allocations`). | Stale. Ignore it. |
 | 14 | Requirement traceability says `product-brief.md` is missing. | It exists at `docs/product-brief.md`. It mentions expense edit/delete and a full dashboard, but no API exists for either, so both are out of scope. |
 | 15 | `angular.json` schematics set `skipTests: true`. | `ng generate` creates no spec files. Write `*.spec.ts` by hand. |
+| 16 | `npm ci` failed: the lock file was out of sync (missing `@emnapi/*`), and `vitest@^5` conflicts with the `@angular/build@21.2` peer `vitest@^4`. | **Decided.** Added `frontend/.npmrc` with `legacy-peer-deps=true` and ran `npm install`, which updated `package-lock.json`. Tests run fine on vitest 5. |
+| 17 | By default, coverage counted only files imported by specs, so untested files were invisible and the 80% figure was inflated. | **Decided.** `angular.json` test options: `coverageInclude: ["src/app/**/*.ts"]` + `coverageThresholds` 80. |

@@ -10,7 +10,7 @@ paths:
 - Templates use `@if`/`@for (...; track item.jarType)`/`@switch`. No `*ngIf`/`*ngFor`.
 - Typed Reactive Forms (`NonNullableFormBuilder`). The template-driven `ngModel` is not used.
 - Layers: page components handle routing, forms, loading, and UI states. Presentation components only use inputs/outputs (no `HttpClient`, no services). `core/services` own HTTP. `models/` hold DTO interfaces.
-- Layout and naming: see `.claude/knowledge/discrepancies.md` #11 (`features/<area>/pages/<page>/<page>.component.ts`). Generate with `npx ng g c <path> --type=component`.
+- Layout and naming: see `.claude/knowledge/discrepancies.md` #11 (`features/<area>/pages/<page>/<page>.component.ts`). Generate from `frontend/` (a standalone `cd frontend` first, because `npm exec` from the root breaks paths): `npx ng g c features/<area>/pages/<page> --type=component --style=scss` and `npx ng g s core/services/<name> --type=service`. Both were verified to produce `*.component.ts` and `*.service.ts`.
 - Request-state pattern per page: `status = signal<'loading' | 'ready' | 'not-found' | 'error'>('loading')`. Retry re-runs the same loader.
 - Submit pattern: `if (this.form.invalid || this.submitting()) { markAllAsTouched; focus first invalid; return; }`, then `submitting.set(true)` and `finalize(() => submitting.set(false))`.
 - Accessibility: every control has `<label for>`. Errors have an `id` and are linked with `aria-describedby`. Set `[attr.aria-invalid]`. Loading and success messages use `aria-live="polite"`, errors use `role="alert"`. Buttons need an explicit `type`. Never signal state by color alone.

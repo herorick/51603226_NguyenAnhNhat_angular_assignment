@@ -16,7 +16,7 @@ Rules:
 - Test behavior visible to the user and the exact HTTP request, not private members.
 - Cover: happy path, every error code the page handles, loading, retry, duplicate-submit guard, value preservation on error, negative remaining, >100%, zero spend, and response order preserved.
 - Do not modify production code. If a test exposes a bug, leave that test failing and report it.
-- Run only the touched specs: `npm --prefix frontend test -- --include="<glob>"`. Then run the full coverage summary once: `npm --prefix frontend test -- --coverage --coverage-reporters=text-summary`. If `node_modules` is missing, run `npm --prefix frontend ci` first.
+- Run only the touched specs: `npm --prefix frontend test -- --include="<glob>"`. Then run the full coverage summary once: `npm --prefix frontend test -- --coverage --coverage-reporters=text-summary`. If `node_modules` is missing, run `npm --prefix frontend install` first.
 
 Report (terse):
 - Files created/changed.
