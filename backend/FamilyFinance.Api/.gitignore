@@ -1,0 +1,9 @@
+bin/
+obj/
+.vs/
+.vscode/
+*.user
+*.suo
+family-finance.db
+family-finance.db-shm
+family-finance.db-wal

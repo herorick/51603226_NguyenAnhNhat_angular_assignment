@@ -1,0 +1,120 @@
+// ── Base Breakpoint Tokens ────────────────────────────────────
+// Figma desktop reference: 1440px.
+// CSS custom properties are provided for runtime/documentation.
+// Sass variables must be used inside media queries because CSS
+// custom properties cannot be evaluated in @media conditions.
+
+:root,
+:host {
+  --breakpoint-mobile: 576px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-laptop: 1024px;
+  --breakpoint-desktop: 1280px;
+  --breakpoint-wide: 1440px;
+  --breakpoint-ultra-wide: 1600px;
+  --breakpoint-full-hd: 1920px;
+}
+
+$bp-mobile: 576px;
+$bp-tablet: 768px;
+$bp-laptop: 1024px;
+$bp-desktop: 1280px;
+$bp-wide: 1440px;
+$bp-ultra-wide: 1600px;
+$bp-full-hd: 1920px;
+
+// ── Mobile ───────────────────────────────────────────────────
+
+@mixin mobile-down {
+  @media (max-width: #{$bp-mobile - 0.02px}) {
+    @content;
+  }
+}
+
+@mixin mobile-up {
+  @media (min-width: #{$bp-mobile}) {
+    @content;
+  }
+}
+
+// ── Tablet ───────────────────────────────────────────────────
+
+@mixin tablet-down {
+  @media (max-width: #{$bp-tablet - 0.02px}) {
+    @content;
+  }
+}
+
+@mixin tablet-up {
+  @media (min-width: #{$bp-tablet}) {
+    @content;
+  }
+}
+
+// ── Laptop ───────────────────────────────────────────────────
+
+@mixin laptop-down {
+  @media (max-width: #{$bp-laptop - 0.02px}) {
+    @content;
+  }
+}
+
+@mixin laptop-up {
+  @media (min-width: #{$bp-laptop}) {
+    @content;
+  }
+}
+
+// ── Desktop ──────────────────────────────────────────────────
+
+@mixin desktop-down {
+  @media (max-width: #{$bp-desktop - 0.02px}) {
+    @content;
+  }
+}
+
+@mixin desktop-up {
+  @media (min-width: #{$bp-desktop}) {
+    @content;
+  }
+}
+
+// ── Figma desktop reference ──────────────────────────────────
+
+@mixin wide-down {
+  @media (max-width: #{$bp-wide - 0.02px}) {
+    @content;
+  }
+}
+
+@mixin wide-up {
+  @media (min-width: #{$bp-wide}) {
+    @content;
+  }
+}
+
+@mixin ultra-wide-up {
+  @media (min-width: #{$bp-ultra-wide}) {
+    @content;
+  }
+}
+
+@mixin full-hd-up {
+  @media (min-width: #{$bp-full-hd}) {
+    @content;
+  }
+}
+
+// ── Accessibility ────────────────────────────────────────────
+
+@mixin reduced-motion {
+  @media (prefers-reduced-motion: reduce) {
+    @content;
+  }
+}
+
+@mixin high-contrast {
+  @media (forced-colors: active) {
+    @content;
+  }
+}

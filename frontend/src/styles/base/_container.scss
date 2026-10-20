@@ -1,0 +1,89 @@
+// ── Base Container Tokens ────────────────────────────────────
+
+:root,
+:host {
+  // ── Shell ─────────────────────────────────────────────────
+
+  --shell-header-height: 3rem; // 48px
+  --shell-header-padding-inline: 1.25rem; // 20px
+
+  --shell-header-side-width: 12.5rem; // 200px
+  --shell-header-action-size: 3rem; // 48px
+  --shell-header-icon-size: 1.25rem; // 20px
+
+  --shell-body-padding: 0.75rem; // 12px
+  --shell-body-gap: 1rem; // 16px
+
+  // ── Logo ──────────────────────────────────────────────────
+
+  --shell-logo-frame-width: 10.795625rem; // 172.73px
+  --shell-logo-frame-height: 1.25rem; // 20px
+
+  --shell-logo-image-width: 10.038125rem; // 160.61px
+  --shell-logo-image-height: 1.220625rem; // 19.53px
+
+  // ── Sidebar ───────────────────────────────────────────────
+
+  --sidebar-expanded-width: 15.625rem; // 250px
+  --sidebar-collapsed-width: 4.375rem; // 70px
+  --sidebar-collapsed-content-width: 3.125rem; // 50px
+
+  --sidebar-padding-inline: 0.625rem; // 10px
+  --sidebar-padding-block: 2rem; // 32px
+
+  --sidebar-navigation-gap: 0.25rem; // 4px
+
+  --sidebar-item-height: 2.5rem; // 40px
+  --sidebar-item-padding-inline: 1rem; // 16px
+  --sidebar-item-padding-block: 0.5rem; // 8px
+  --sidebar-item-gap: 0.5rem; // 8px
+
+  --sidebar-icon-size: 1.125rem; // 18px
+  --sidebar-collapse-button-size: 2.5rem; // 40px
+
+  --sidebar-child-guide-width: 0.0625rem; // 1px
+  --sidebar-child-guide-offset: 0.5rem; // 8px
+
+  // ── Main content ──────────────────────────────────────────
+
+  --main-content-padding: 2rem; // 32px
+  --main-content-gap: 2rem; // 32px
+
+  // Main dashboard is fluid, not capped at 1440px.
+  --main-content-max-width: none;
+
+  // Forms and readable content should remain constrained.
+  --content-readable-max-width: 75rem; // 1200px
+  --form-content-max-width: 60rem; // 960px
+  --form-content-narrow-max-width: 45rem; // 720px
+
+  // ── Dialog widths ─────────────────────────────────────────
+
+  --dialog-small-max-width: 31.25rem; // 500px
+  --dialog-medium-max-width: 37.5rem; // 600px
+  --dialog-large-max-width: 50rem; // 800px
+  --dialog-xlarge-max-width: 62.5rem; // 1000px
+
+  // ── Dashboard banner ──────────────────────────────────────
+
+  --dashboard-banner-padding: 1.5rem; // 24px
+  --dashboard-banner-content-gap: 1rem; // 16px
+
+  // ── Dashboard module cards ────────────────────────────────
+
+  --dashboard-card-padding: 1rem; // 16px
+  --dashboard-card-gap: 0.5rem; // 8px
+  --dashboard-card-grid-gap: 1rem; // 16px
+
+  --dashboard-card-icon-size: 1.25rem; // 20px
+  --dashboard-card-icon-container-size: 2.75rem; // 44px
+
+  // ── Table ─────────────────────────────────────────────────
+
+  --table-min-width: 56.25rem; // 900px
+
+  // ── Backward-compatible aliases ───────────────────────────
+
+  --container-sidebar-width: var(--sidebar-expanded-width);
+  --container-sidebar-collapsed: var(--sidebar-collapsed-width);
+}

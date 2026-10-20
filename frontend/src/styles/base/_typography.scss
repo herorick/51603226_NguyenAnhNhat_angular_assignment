@@ -1,0 +1,38 @@
+// Figma typography tokens use Mulish with the supplied size roles.
+
+:root,
+:host {
+  --f1-font: 'Mulish', sans-serif;
+  --f1-body: 1rem;
+  --f1-small: 0.875rem;
+  --f1-label: 0.75rem;
+  --f1-title: 2rem;
+  --f1-display: 2.75rem;
+
+  --font-family-body: var(--f1-font);
+  --font-family-heading: var(--f1-font);
+  --font-family-mono: monospace;
+  --font-body: var(--f1-font);
+  --font-heading: var(--f1-font);
+  --font-sans: var(--f1-font);
+  --font-mono: var(--font-family-mono);
+
+  --font-size-12: var(--f1-label);
+  --font-size-14: var(--f1-small);
+  --font-size-16: var(--f1-body);
+  --font-size-18: var(--f1-body);
+  --font-size-20: var(--f1-body);
+  --font-size-24: var(--f1-title);
+  --font-size-32: var(--f1-title);
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-bold: 700;
+
+  --line-height-14: 1.125rem;
+  --line-height-18: 1.125rem;
+  --line-height-20: 1.25rem;
+  --line-height-21: 1.3125rem;
+  --line-height-24: 1.5rem;
+  --line-height-38-4: 2.4rem;
+}

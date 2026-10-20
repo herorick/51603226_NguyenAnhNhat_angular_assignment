@@ -1,0 +1,72 @@
+// ── Form Primitives ───────────────────────────────────────────
+
+input[type='text'],
+input[type='number'],
+input[type='date'],
+select {
+  border: 0.0625rem solid var(--f1-grey); /* 1px */
+  border-radius: 0.625rem; /* 10px */
+  padding: 0.625rem 0.875rem; /* 10px 14px */
+  font-size: 0.85rem;
+  font-family: var(--font-sans);
+  color: var(--text-body);
+  background: var(--f1-bg);
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+  box-sizing: border-box;
+
+  &:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    background: var(--f1-surface);
+    box-shadow: 0 0 0 0.1875rem rgba(21, 93, 252, 0.1); /* 3px */
+  }
+
+  &:disabled,
+  &[readonly] {
+    background: var(--f1-grey);
+    color: var(--f1-slate);
+    cursor: not-allowed;
+
+    &:focus {
+      border-color: var(--f1-grey);
+      box-shadow: none;
+    }
+  }
+}
+
+.form-actions {
+  display: flex;
+  gap: 0.75rem; /* 12px */
+  padding-top: 0.5rem; /* 8px */
+}
+
+/* ── Validation & Helper Indicators ───────────────────────── */
+.error {
+  font-size: 0.85rem;
+  color: var(--danger);
+  margin: 0.75rem 0; /* 12px */
+}
+
+.field-error,
+.field-error-text {
+  color: var(--danger);
+  font-size: 0.75rem;
+  margin-top: 0.125rem; /* 2px */
+}
+
+.required {
+  color: var(--danger);
+  margin-left: 0.125rem; /* 2px */
+}
+
+.is-invalid {
+  border-color: var(--danger) !important;
+  background-color: var(--danger-bg) !important;
+}
+
+.loading {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  margin: 0.75rem 0; /* 12px */
+}

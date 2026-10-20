@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "FamilyFinance.Api": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:54535;http://localhost:54536"
+    }
+  }
+}

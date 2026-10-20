@@ -1,0 +1,12 @@
+// ── Base Layer Index ──────────────────────────────────────────
+// Order matters because component dimension tokens may reference
+// spacing, radius and typography values.
+
+@forward 'breakpoint';
+@forward 'colors';
+@forward 'spacing';
+@forward 'radius';
+@forward 'typography';
+@forward 'container';
+@forward 'form-control';
+@forward 'icon';

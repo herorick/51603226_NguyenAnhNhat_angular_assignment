@@ -1,0 +1,118 @@
+// Semantic aliases required by the current style primitives.
+
+:root,
+:host {
+  color-scheme: light;
+
+  --surface-page: var(--f1-bg);
+  --surface-card: var(--f1-surface);
+  --surface-sidebar: var(--f1-surface);
+  --surface-header: var(--f1-navy);
+  --surface-hover: var(--f1-lavender);
+
+  --color-brand: var(--f1-navy);
+  --color-brand-hover: var(--nt-navy-deep);
+  --color-action-primary: var(--f1-red);
+  --color-action-primary-hover: var(--f1-error);
+
+  --color-text-heading: var(--f1-navy);
+  --color-text-primary: var(--f1-charcoal);
+  --color-text-body: var(--f1-charcoal);
+  --color-text-secondary: var(--f1-slate);
+  --color-text-muted: var(--f1-slate);
+  --color-text-inverse: var(--f1-surface);
+
+  --color-border: var(--f1-grey);
+  --color-border-subtle: var(--f1-grey);
+  --color-focus: var(--nt-focus);
+  --focus-ring-width: 0.1875rem;
+  --focus-ring-color: color-mix(in srgb, var(--nt-focus) 35%, transparent);
+
+  --color-success: var(--f1-green);
+  --color-success-background: var(--f1-green-tint);
+  --color-success-text: var(--f1-green);
+  --color-warning: var(--f1-red);
+  --color-warning-background: var(--f1-error-tint);
+  --color-warning-text: var(--f1-error);
+  --color-error: var(--f1-error);
+  --color-error-background: var(--f1-error-tint);
+  --color-error-text: var(--f1-error);
+
+  --bg-page: var(--surface-page);
+  --white: var(--f1-surface);
+  --primary: var(--f1-red);
+  --primary-indigo: var(--f1-navy);
+  --primary-indigo-hover: var(--nt-navy-deep);
+  --primary-blue: var(--f1-navy);
+  --text-primary: var(--color-text-primary);
+  --text-body: var(--color-text-body);
+  --text-secondary: var(--color-text-secondary);
+  --text-muted: var(--color-text-muted);
+  --border-color: var(--color-border);
+  --border-light: var(--color-border-subtle);
+  --success: var(--color-success);
+  --success-bg: var(--color-success-background);
+  --success-text: var(--color-success-text);
+  --warning: var(--color-warning);
+  --warning-bg: var(--color-warning-background);
+  --warning-text: var(--color-warning-text);
+  --danger: var(--color-error);
+  --danger-bg: var(--color-error-background);
+  --danger-text: var(--color-error-text);
+  --neutral-light: var(--f1-bg);
+
+  --badge-ft-bg: var(--f1-lavender);
+  --badge-ft-border: var(--f1-grey);
+  --badge-ft-text: var(--f1-navy);
+  --badge-active-bg: var(--f1-green-tint);
+  --badge-active-border: var(--f1-green);
+  --badge-active-text: var(--f1-green);
+  --badge-leave-bg: var(--f1-error-tint);
+  --badge-leave-border: var(--f1-red);
+  --badge-leave-text: var(--f1-error);
+  --badge-pt-bg: var(--f1-lavender);
+  --badge-pt-text: var(--f1-navy);
+
+  --dialog-backdrop-background: color-mix(in srgb, var(--f1-navy) 24%, transparent);
+  --dialog-surface-background: var(--f1-surface);
+  --dialog-title-color: var(--color-text-heading);
+  --dialog-description-color: var(--color-text-secondary);
+  --dialog-button-primary-background: var(--f1-red);
+  --dialog-button-primary-background-hover: var(--f1-error);
+  --dialog-button-primary-background-active: var(--f1-error);
+  --dialog-button-primary-text: var(--f1-surface);
+  --dialog-button-secondary-background: var(--f1-surface);
+  --dialog-button-secondary-background-hover: var(--f1-lavender);
+  --dialog-button-secondary-background-active: var(--f1-grey);
+  --dialog-button-secondary-border: var(--f1-grey);
+  --dialog-button-secondary-text: var(--f1-navy);
+  --dialog-button-danger-background: var(--f1-error);
+  --dialog-button-danger-background-hover: var(--f1-red);
+  --dialog-button-danger-text: var(--f1-surface);
+  --dialog-button-disabled-background: var(--f1-grey);
+  --dialog-button-disabled-border: var(--f1-grey);
+  --dialog-button-disabled-text: var(--f1-slate);
+  --dialog-focus-ring-color: var(--nt-focus);
+  --dialog-shadow: 0 0.25rem 1rem color-mix(in srgb, var(--f1-navy) 16%, transparent);
+
+  --tooltip-background: var(--f1-charcoal);
+  --tooltip-border-color: var(--f1-charcoal);
+  --tooltip-text-color: var(--f1-surface);
+  --tooltip-shadow: 0 0.25rem 1rem color-mix(in srgb, var(--f1-navy) 16%, transparent);
+  --tooltip-font-family: var(--f1-font);
+  --tooltip-font-size: var(--f1-label);
+  --tooltip-font-weight: var(--font-weight-regular);
+  --tooltip-line-height: var(--line-height-18);
+  --tooltip-max-width: 15rem;
+  --tooltip-padding-block: var(--f1-xs);
+  --tooltip-padding-inline: var(--f1-sm);
+  --tooltip-border-radius: var(--nt-radius-zero);
+  --tooltip-arrow-border-size: 0.4375rem;
+  --tooltip-arrow-fill-size: 0.375rem;
+  --tooltip-arrow-offset: 0.0625rem;
+  --tooltip-z-index: 9999;
+
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --easing-standard: ease;
+}

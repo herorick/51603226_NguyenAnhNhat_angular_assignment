@@ -1,0 +1,71 @@
+// ── Layout / Page Primitives ──────────────────────────────────
+
+.page {
+  min-width: 0;
+  width: 100%;
+  min-height: 100%;
+  padding: var(--f1-md) var(--f1-md);
+  background: var(--surface-page);
+}
+
+.page-fluid,
+.dashboard-page,
+.table-page,
+.chart-page {
+  width: 100%;
+  max-width: none;
+}
+
+.page-reading {
+  width: min(100%, 75rem);
+  margin-inline: auto;
+}
+
+.form-page {
+  width: min(100%, 60rem);
+  margin-inline: auto;
+}
+
+.form-page--compact {
+  width: min(100%, 45rem);
+  margin-inline: auto;
+}
+
+.dialog-content--sm {
+  width: min(calc(100vw - 2rem), 31.25rem);
+}
+.dialog-content--md {
+  width: min(calc(100vw - 2rem), 37.5rem);
+}
+.dialog-content--lg {
+  width: min(calc(100vw - 2rem), 50rem);
+}
+
+.responsive-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr));
+  gap: var(--spacing-6);
+}
+
+.chart-container,
+.table-container,
+.table-wrap {
+  min-width: 0;
+  width: 100%;
+}
+
+.table-wrap,
+.table-container {
+  overflow-x: auto;
+}
+
+.table-wrap > table,
+.table-container > table {
+  min-width: var(--table-min-width);
+}
+
+@media (max-width: 768px) {
+  .page {
+    padding: var(--f1-sm);
+  }
+}

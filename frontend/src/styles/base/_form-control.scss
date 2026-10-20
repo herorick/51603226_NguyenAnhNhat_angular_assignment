@@ -1,0 +1,12 @@
+// ── Base Form-Control Tokens ─────────────────────────────────
+
+:root,
+:host {
+  --form-input-height: 2.5rem; // 40px
+  --form-input-radius: var(--radius-md);
+  --form-input-border-color: var(--f1-grey);
+  --form-input-background: var(--f1-bg);
+  --form-input-color: var(--f1-charcoal);
+  --form-input-font-size: var(--font-size-14);
+  --form-input-padding-inline: var(--spacing-4);
+}

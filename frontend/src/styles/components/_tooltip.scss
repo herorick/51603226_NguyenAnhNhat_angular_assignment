@@ -1,0 +1,79 @@
+// ── Floating tooltip ─────────────────────────────────────────
+
+.wl-tooltip {
+  position: fixed;
+  z-index: var(--tooltip-z-index);
+
+  max-width: var(--tooltip-max-width);
+  padding:
+    var(--tooltip-padding-block)
+    var(--tooltip-padding-inline);
+
+  background: var(--tooltip-background);
+  border: 0.0625rem solid var(--tooltip-border-color);
+  border-radius: var(--tooltip-border-radius);
+  box-shadow: var(--tooltip-shadow);
+
+  color: var(--tooltip-text-color);
+
+  font-family: var(--tooltip-font-family);
+  font-size: var(--tooltip-font-size);
+  font-weight: var(--tooltip-font-weight);
+  line-height: var(--tooltip-line-height);
+
+  overflow-wrap: anywhere;
+  white-space: normal;
+  text-align: center;
+
+  pointer-events: none;
+
+  &.wl-tooltip--above,
+  &.wl-tooltip--below {
+    &::before,
+    &::after {
+      content: '';
+
+      position: absolute;
+      left: var(--wl-arrow-center, 50%);
+
+      width: 0;
+      height: 0;
+
+      border-style: solid;
+      border-color: transparent;
+
+      transform: translateX(-50%);
+      pointer-events: none;
+    }
+  }
+
+  // Arrow points downward because tooltip is above the trigger.
+  &.wl-tooltip--above {
+    &::before {
+      top: 100%;
+      border-width: var(--tooltip-arrow-border-size);
+      border-top-color: var(--tooltip-border-color);
+    }
+
+    &::after {
+      top: calc(100% - var(--tooltip-arrow-offset));
+      border-width: var(--tooltip-arrow-fill-size);
+      border-top-color: var(--tooltip-background);
+    }
+  }
+
+  // Arrow points upward because tooltip is below the trigger.
+  &.wl-tooltip--below {
+    &::before {
+      bottom: 100%;
+      border-width: var(--tooltip-arrow-border-size);
+      border-bottom-color: var(--tooltip-border-color);
+    }
+
+    &::after {
+      bottom: calc(100% - var(--tooltip-arrow-offset));
+      border-width: var(--tooltip-arrow-fill-size);
+      border-bottom-color: var(--tooltip-background);
+    }
+  }
+}

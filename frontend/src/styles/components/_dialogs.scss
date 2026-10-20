@@ -1,0 +1,300 @@
+// ── Dialog Primitive ─────────────────────────────────────────
+
+@use '../base/breakpoint' as *;
+
+.app-dialog {
+  width: calc(100% - (var(--spacing-6) * 2));
+  max-width: var(--dialog-small-max-width);
+  max-height: calc(100dvh - (var(--spacing-4) * 2));
+
+  margin: auto;
+  padding: 0;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  color: inherit;
+  background: transparent;
+
+  border: 0;
+  border-radius: var(--radius-card);
+
+  box-sizing: border-box;
+  overscroll-behavior: contain;
+
+  &::backdrop {
+    background: var(--dialog-backdrop-background);
+  }
+
+  &-small {
+    max-width: var(--dialog-small-max-width);
+  }
+
+  &-medium {
+    max-width: var(--dialog-medium-max-width);
+  }
+
+  &-large {
+    max-width: var(--dialog-large-max-width);
+  }
+
+  &-xlarge {
+    max-width: var(--dialog-xlarge-max-width);
+  }
+}
+
+.app-dialog-container {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-6);
+
+  width: 100%;
+  padding: var(--spacing-6);
+
+  background: var(--dialog-surface-background);
+  border-radius: var(--radius-card);
+  box-shadow: var(--dialog-shadow);
+
+  box-sizing: border-box;
+}
+
+.app-dialog-container-sectioned {
+  gap: 0;
+  padding: 0;
+}
+
+.app-dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-5);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.app-dialog-content {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-3);
+
+  min-width: 0;
+}
+
+.app-dialog-body {
+  align-items: stretch;
+  padding: var(--spacing-6);
+}
+
+.app-dialog-title {
+  margin: 0;
+
+  color: var(--dialog-title-color);
+
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-24);
+
+  overflow-wrap: anywhere;
+}
+
+.app-dialog-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: var(--spacing-8);
+  height: var(--spacing-8);
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-sm);
+  color: var(--f1-slate);
+  background: transparent;
+  font-size: var(--font-size-24);
+  line-height: 1;
+  cursor: pointer;
+
+  app-wc-image {
+    display: block;
+    width: var(--spacing-4);
+    height: var(--spacing-4);
+  }
+
+  &:hover {
+    color: var(--dialog-title-color);
+    background: var(--dialog-button-secondary-background-hover);
+  }
+
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 var(--focus-ring-width) var(--dialog-focus-ring-color);
+  }
+}
+
+.app-dialog-description {
+  align-self: stretch;
+  margin: 0;
+
+  color: var(--dialog-description-color);
+
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-regular);
+  line-height: var(--line-height-21);
+
+  overflow-wrap: anywhere;
+}
+
+.app-dialog-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--spacing-4);
+
+  flex: 0 0 auto;
+}
+
+.app-dialog-container-sectioned .app-dialog-body {
+  padding: var(--spacing-6);
+}
+
+.app-dialog-container-sectioned .app-dialog-actions {
+  padding: var(--spacing-4) var(--spacing-6);
+  border-top: 1px solid var(--color-border);
+  background: var(--f1-bg);
+}
+
+.app-dialog-actions-space-between {
+  justify-content: space-between;
+}
+
+.app-dialog-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-2);
+
+  min-width: 4.75rem;
+  height: var(--spacing-10);
+  padding: var(--spacing-2) var(--spacing-4);
+
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+
+  font-family: var(--font-family-body);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  line-height: var(--line-height-20);
+
+  cursor: pointer;
+
+  box-sizing: border-box;
+
+  transition:
+    background-color var(--duration-fast) var(--easing-standard),
+    border-color var(--duration-fast) var(--easing-standard),
+    color var(--duration-fast) var(--easing-standard),
+    box-shadow var(--duration-fast) var(--easing-standard);
+
+  &:focus,
+  &:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 var(--focus-ring-width) var(--dialog-focus-ring-color);
+  }
+
+  &:disabled {
+    color: var(--dialog-button-disabled-text);
+    background: var(--dialog-button-disabled-background);
+    border-color: var(--dialog-button-disabled-border);
+
+    cursor: not-allowed;
+  }
+
+  &-secondary {
+    color: var(--dialog-button-secondary-text);
+    background: var(--dialog-button-secondary-background);
+    border-color: var(--dialog-button-secondary-border);
+
+    &:hover:not(:disabled) {
+      background: var(--dialog-button-secondary-background-hover);
+    }
+
+    &:active:not(:disabled) {
+      background: var(--dialog-button-secondary-background-active);
+    }
+  }
+
+  &-primary {
+    color: var(--dialog-button-primary-text);
+    background: var(--dialog-button-primary-background);
+
+    &:hover:not(:disabled) {
+      background: var(--dialog-button-primary-background-hover);
+    }
+
+    &:active:not(:disabled) {
+      background: var(--dialog-button-primary-background-active);
+    }
+  }
+
+  &-danger {
+    color: var(--dialog-button-danger-text);
+    background: var(--dialog-button-danger-background);
+
+    &:hover:not(:disabled),
+    &:active:not(:disabled) {
+      background: var(--dialog-button-danger-background-hover);
+    }
+  }
+}
+
+.app-dialog-spinner {
+  width: var(--icon-sm);
+  height: var(--icon-sm);
+
+  border: 2px solid currentcolor;
+  border-right-color: transparent;
+  border-radius: var(--radius-full);
+
+  animation: dialog-spinner 700ms linear infinite;
+}
+
+@keyframes dialog-spinner {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@include reduced-motion {
+  .app-dialog-button {
+    transition: none;
+  }
+
+  .app-dialog-spinner {
+    animation-duration: 1500ms;
+  }
+}
+
+@include mobile-down {
+  .app-dialog {
+    width: calc(100% - (var(--spacing-4) * 2));
+    max-height: calc(100dvh - (var(--spacing-2) * 2));
+  }
+
+  .app-dialog-container {
+    gap: var(--spacing-4);
+    padding: var(--spacing-4);
+  }
+
+  .app-dialog-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: var(--spacing-3);
+  }
+
+  .app-dialog-button {
+    width: 100%;
+  }
+}

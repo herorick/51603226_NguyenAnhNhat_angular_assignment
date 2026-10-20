@@ -1,0 +1,572 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NashTech Notes monthly planning tokens</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --canvas: #f4f8fc;
+      --surface: #fff;
+      --navy: #1b4167;
+      --ink: #1d3858;
+      --muted: #5e7fa5;
+      --border: #d7e3f1;
+      --action: #1976d2;
+      --success: #13804a;
+      --success-bg: #ddf7ea;
+      --danger: #f04452;
+      --danger-bg: #fff0f1;
+      --warning: #d77b00;
+      --warning-bg: #fffaef;
+      --font: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-family: var(--font);
+      color: var(--ink);
+      background: var(--canvas);
+      font-synthesis: none;
+      text-rendering: optimizeLegibility;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-width: 320px;
+    }
+
+    header {
+      padding: 18px max(20px, calc((100vw - 1080px) / 2));
+      color: white;
+      background: var(--navy);
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 22px;
+      line-height: 1.3;
+    }
+
+    header p {
+      margin: 5px 0 0;
+      color: #d7e3f1;
+      font-size: 14px;
+    }
+
+    main {
+      width: min(1080px, calc(100% - 40px));
+      margin: 24px auto 48px;
+    }
+
+    section {
+      margin-top: 28px;
+    }
+
+    h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+      line-height: 1.4;
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 15px;
+      line-height: 1.4;
+    }
+
+    p,
+    small {
+      line-height: 1.5;
+    }
+
+    .note {
+      margin: 0 0 12px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .swatches {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 10px;
+    }
+
+    .swatch {
+      overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: var(--surface);
+    }
+
+    .chip {
+      height: 42px;
+      background: var(--swatch);
+    }
+
+    .swatch p {
+      margin: 0;
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    code {
+      color: var(--muted);
+    }
+
+    .type-list {
+      display: grid;
+      gap: 8px;
+    }
+
+    .type-row,
+    .scale-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 12px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: white;
+    }
+
+    .type-label {
+      width: 140px;
+      flex: 0 0 auto;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .t-title {
+      font-size: 28px;
+      line-height: 1.22;
+      font-weight: 700;
+    }
+
+    .t-section {
+      font-size: 20px;
+      line-height: 28px;
+      font-weight: 700;
+    }
+
+    .t-body {
+      font-size: 16px;
+      line-height: 24px;
+    }
+
+    .t-label {
+      font-size: 14px;
+      line-height: 20px;
+      font-weight: 700;
+    }
+
+    .t-caption {
+      font-size: 13px;
+      line-height: 18px;
+    }
+
+    .scales {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(155px, 1fr));
+      gap: 8px;
+    }
+
+    .scale-row {
+      min-height: 56px;
+      justify-content: space-between;
+      font-size: 13px;
+    }
+
+    .scale-row span:last-child {
+      color: var(--muted);
+    }
+
+    .examples {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
+      gap: 12px;
+    }
+
+    .panel {
+      padding: 18px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      background: white;
+    }
+
+    .panel h3 {
+      margin-bottom: 12px;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    button {
+      min-height: 42px;
+      padding: 0 14px;
+      border: 0;
+      border-radius: 7px;
+      color: white;
+      background: var(--action);
+      font: 600 14px var(--font);
+      cursor: pointer;
+    }
+
+    button:hover {
+      background: #1268bd;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid #9bcaff;
+      outline-offset: 2px;
+    }
+
+    button.secondary {
+      color: var(--navy);
+      background: #edf5fd;
+    }
+
+    button.danger {
+      background: var(--danger);
+    }
+
+    button:disabled {
+      cursor: not-allowed;
+      opacity: .55;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    input[type="text"],
+    select {
+      width: 100%;
+      min-height: 42px;
+      padding: 0 11px;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      color: var(--ink);
+      background: white;
+      font: 14px var(--font);
+    }
+
+    .field {
+      margin-top: 12px;
+    }
+
+    .helper,
+    .error {
+      margin: 5px 0 0;
+      font-size: 12px;
+    }
+
+    .helper {
+      color: var(--muted);
+    }
+
+    .error {
+      color: #c62835;
+    }
+
+    .choice {
+      display: flex;
+      gap: 16px;
+      margin-top: 12px;
+      font-size: 13px;
+    }
+
+    .choice label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+      font-weight: 400;
+    }
+
+    .choice input {
+      accent-color: var(--action);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 10px;
+      border-radius: 14px;
+      color: var(--success);
+      background: var(--success-bg);
+      font-size: 13px;
+    }
+
+    .alert {
+      margin-top: 8px;
+      padding: 10px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .alert.success {
+      color: var(--success);
+      background: var(--success-bg);
+    }
+
+    .alert.warning {
+      color: #875000;
+      background: var(--warning-bg);
+    }
+
+    .alert.danger {
+      color: #8c2630;
+      background: var(--danger-bg);
+    }
+
+    .jars {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 10px;
+    }
+
+    .jar {
+      min-height: 124px;
+      padding: 15px 12px 10px;
+      border: 1px solid var(--border);
+      border-top: 5px solid var(--jar);
+      border-radius: 8px;
+      background: var(--tint);
+    }
+
+    .jar p {
+      margin: 8px 0 0;
+      color: var(--jar);
+      font-size: 24px;
+      font-weight: 700;
+    }
+
+    .list-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      background: white;
+      font-size: 14px;
+    }
+
+    .list-row span:last-child {
+      color: var(--muted);
+    }
+
+    @media (max-width: 520px) {
+      .type-label {
+        width: 95px;
+      }
+
+      .type-row {
+        gap: 8px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <h1>NashTech Notes | Monthly planning</h1>
+    <p>Observed screen tokens and component references</p>
+  </header>
+  <main>
+    <p class="note">Source: monthly-planning.html, captured 2026-09-26. Secondary/destructive controls and generic input
+      variants below are illustrative only; the source screen does not define them.</p>
+
+    <section>
+      <h2>Color roles</h2>
+      <div class="swatches">
+        <div class="swatch">
+          <div class="chip" style="--swatch:#1b4167"></div>
+          <p>Header navy <code>#1B4167</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#1976d2"></div>
+          <p>Action <code>#1976D2</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#1d3858"></div>
+          <p>Primary text <code>#1D3858</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#5e7fa5"></div>
+          <p>Muted text <code>#5E7FA5</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#f4f8fc"></div>
+          <p>Canvas <code>#F4F8FC</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#ffffff"></div>
+          <p>Surface <code>#FFFFFF</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#d7e3f1"></div>
+          <p>Border <code>#D7E3F1</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#13804a"></div>
+          <p>Success <code>#13804A</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#f04452"></div>
+          <p>Required/error <code>#F04452</code></p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Category colors</h2>
+      <div class="swatches">
+        <div class="swatch">
+          <div class="chip" style="--swatch:#ef3543"></div>
+          <p>Living <code>#EF3543</code> / <code>#FFF4F5</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#d77b00"></div>
+          <p>Food <code>#D77B00</code> / <code>#FFFAEF</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#6336e5"></div>
+          <p>Children <code>#6336E5</code> / <code>#F7F5FF</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#078c89"></div>
+          <p>Emergency <code>#078C89</code> / <code>#F0FBFA</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#07834c"></div>
+          <p>Savings <code>#07834C</code> / <code>#F1FCF5</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#0872c4"></div>
+          <p>Investment <code>#0872C4</code> / <code>#F1F9FF</code></p>
+        </div>
+        <div class="swatch">
+          <div class="chip" style="--swatch:#6538df"></div>
+          <p>Travel <code>#6538DF</code> / <code>#F7F5FF</code></p>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Typography</h2>
+      <div class="type-list">
+        <div class="type-row"><span class="type-label">28 / 700 / 1.22</span><span class="t-title">Create your monthly
+            plan</span></div>
+        <div class="type-row"><span class="type-label">20 / 700 / 28px</span><span class="t-section">Monthly plan
+            details</span></div>
+        <div class="type-row"><span class="type-label">16 / 400 / 24px</span><span class="t-body">Set your income for a
+            month.</span></div>
+        <div class="type-row"><span class="type-label">14 / 700 / 20px</span><span class="t-label">Total monthly income
+            (VND)</span></div>
+        <div class="type-row"><span class="type-label">13 / 400 / 18px</span><span class="t-caption">Enter a positive
+            amount. Use whole VND values.</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Spacing and shape</h2>
+      <div class="scales">
+        <div class="scale-row"><span>xs / inferred</span><span>4px</span></div>
+        <div class="scale-row"><span>sm</span><span>8px</span></div>
+        <div class="scale-row"><span>md</span><span>12px</span></div>
+        <div class="scale-row"><span>lg</span><span>16px</span></div>
+        <div class="scale-row"><span>xl</span><span>24px</span></div>
+        <div class="scale-row"><span>control radius</span><span>7px</span></div>
+        <div class="scale-row"><span>panel radius</span><span>8px</span></div>
+        <div class="scale-row"><span>status radius</span><span>14px</span></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Components</h2>
+      <div class="examples">
+        <article class="panel">
+          <h3>Buttons</h3>
+          <div class="button-row"><button type="button">Create plan</button><button type="button"
+              class="secondary">Secondary</button><button type="button" class="danger">Destructive</button><button
+              type="button" disabled>Disabled</button></div>
+        </article>
+        <article class="panel">
+          <h3>Input states</h3>
+          <div class="field"><label for="preview-income">Monthly income (VND)</label><input id="preview-income"
+              type="text" value="25000000">
+            <p class="helper">Observed helper-text placement.</p>
+          </div>
+          <div class="field"><label for="preview-select">Month</label><select id="preview-select">
+              <option>September 2026</option>
+            </select></div>
+          <div class="field"><input type="text" aria-invalid="true" value="Invalid amount">
+            <p class="error">Enter a valid positive income amount.</p>
+          </div>
+          <div class="choice"><label><input type="checkbox" checked> Include plan</label><label><input type="radio"
+                checked name="preview"> Monthly</label></div>
+        </article>
+        <article class="panel">
+          <h3>Status and feedback</h3>
+          <span class="badge">100% allocated</span>
+          <div class="alert success">Plan details are valid.</div>
+          <div class="alert warning">Review this allocation.</div>
+          <div class="alert danger">Income is required.</div>
+        </article>
+        <article class="panel">
+          <h3>Panel and list row</h3>
+          <div class="list-row"><span>Living Expenses</span><span>35%</span></div>
+        </article>
+      </div>
+    </section>
+
+    <section>
+      <h2>Budget jars</h2>
+      <div class="jars">
+        <article class="jar" style="--jar:#ef3543;--tint:#fff4f5">
+          <h3>Living Expenses</h3>
+          <p>35%</p>
+        </article>
+        <article class="jar" style="--jar:#d77b00;--tint:#fffaef">
+          <h3>Food</h3>
+          <p>20%</p>
+        </article>
+        <article class="jar" style="--jar:#6336e5;--tint:#f7f5ff">
+          <h3>Children</h3>
+          <p>10%</p>
+        </article>
+        <article class="jar" style="--jar:#078c89;--tint:#f0fbfa">
+          <h3>Emergency Fund</h3>
+          <p>10%</p>
+        </article>
+        <article class="jar" style="--jar:#07834c;--tint:#f1fcf5">
+          <h3>Savings</h3>
+          <p>10%</p>
+        </article>
+        <article class="jar" style="--jar:#0872c4;--tint:#f1f9ff">
+          <h3>Investment</h3>
+          <p>10%</p>
+        </article>
+        <article class="jar" style="--jar:#6538df;--tint:#f7f5ff">
+          <h3>Entertainment &amp; Travel</h3>
+          <p>5%</p>
+        </article>
+      </div>
+    </section>
+  </main>
+</body>
+
+</html>

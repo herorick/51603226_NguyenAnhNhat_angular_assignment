@@ -1,0 +1,23 @@
+// Figma spacing tokens: 0, 8, 16, 24, 32 and 48px.
+
+:root,
+:host {
+  --f1-zero: 0;
+  --f1-xs: 0.5rem;
+  --f1-sm: 1rem;
+  --f1-md: 1.5rem;
+  --f1-lg: 2rem;
+  --f1-xl: 3rem;
+
+  --spacing-0: var(--f1-zero);
+  --spacing-1: var(--f1-xs);
+  --spacing-2: var(--f1-xs);
+  --spacing-3: var(--f1-xs);
+  --spacing-4: var(--f1-sm);
+  --spacing-5: var(--f1-sm);
+  --spacing-6: var(--f1-md);
+  --spacing-8: var(--f1-lg);
+  --spacing-10: var(--f1-xl);
+  --spacing-m: var(--f1-sm);
+  --spacing-l: var(--f1-md);
+}
