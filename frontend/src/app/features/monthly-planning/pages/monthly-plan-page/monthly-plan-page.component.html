@@ -1,0 +1,166 @@
+@if (status() !== 'invalid-period') {
+  <a class="back-link" routerLink="/monthly-planning">
+    <span aria-hidden="true">‹</span>
+    Back to monthly planning
+  </a>
+}
+
+@switch (status()) {
+  @case ('loading') {
+    <section class="plan-content" aria-labelledby="plan-title">
+      <h1 id="plan-title">Month Budget Summary</h1>
+      <div class="card state-panel">
+        <p class="state-message" role="status" aria-live="polite">Loading monthly plan…</p>
+      </div>
+    </section>
+  }
+
+  @case ('ready') {
+    @if (plan(); as monthlyPlan) {
+      <section class="plan-content" aria-labelledby="plan-title">
+        <div class="plan-heading">
+          <h1 id="plan-title">Month Budget Summary</h1>
+          @if (period(); as currentPeriod) {
+            <div class="plan-actions">
+              <a
+                class="btn btn-secondary action-link"
+                [routerLink]="['/monthly-plans', currentPeriod.year, currentPeriod.month, 'spending']">
+                View spending
+              </a>
+              <a class="btn btn-primary action-link" routerLink="/expenses/new" [queryParams]="addExpenseQueryParams()">
+                Add expense
+              </a>
+            </div>
+          }
+        </div>
+
+        <section class="card summary" aria-labelledby="summary-heading">
+          <div class="income">
+            <div class="income-icon" aria-hidden="true">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                focusable="false"
+                aria-hidden="true">
+                <rect x="2" y="6" width="20" height="12" rx="2" />
+                <circle cx="12" cy="12" r="2" />
+                <path d="M6 12h.01M18 12h.01" />
+              </svg>
+            </div>
+            <h2 id="summary-heading" class="income-label">Total monthly income</h2>
+            <p class="income-value">{{ monthlyPlan.monthlyIncomeVnd | vnd }}</p>
+            <p class="income-meta">Monthly plan for {{ periodLabel() }}</p>
+          </div>
+
+          <div class="allocation">
+            <div class="donut" aria-hidden="true">
+              <svg viewBox="0 0 42 42" focusable="false" aria-hidden="true">
+                <g transform="rotate(-90 21 21)">
+                  @for (seg of donutSegments(); track seg.jarType) {
+                    <circle
+                      cx="21"
+                      cy="21"
+                      r="15.9155"
+                      fill="none"
+                      stroke-width="5.5"
+                      pathLength="100"
+                      [attr.stroke]="seg.color"
+                      [attr.stroke-dasharray]="seg.length + ' 100'"
+                      [attr.stroke-dashoffset]="-seg.offset" />
+                  }
+                </g>
+              </svg>
+              <span class="donut-label">{{ monthlyPlan.jars.length }} jars</span>
+            </div>
+
+            <ul class="legend" role="list" aria-label="Jar allocation legend">
+              @for (jar of monthlyPlan.jars; track jar.jarType) {
+                <li class="legend-item" [style.--jar-color]="jarColor(jar.jarType)">
+                  <span class="legend-name">
+                    <span class="legend-swatch" aria-hidden="true"></span>
+                    <span>{{ jar.name }}</span>
+                  </span>
+                  <span class="legend-rate">{{ jar.percentage | number: '1.0-2' }}%</span>
+                </li>
+              }
+            </ul>
+          </div>
+        </section>
+
+        <section class="jars" aria-labelledby="jars-heading">
+          <h2 id="jars-heading" class="section-title">The Seven Jars</h2>
+          <p class="section-copy">
+            Your income is allocated to {{ monthlyPlan.jars.length }} jars based on the default rates.
+          </p>
+
+          <ul class="jar-grid" role="list">
+            @for (jar of monthlyPlan.jars; track jar.jarType) {
+              <li class="jar-card" [style.--jar-color]="jarColor(jar.jarType)">
+                <div class="jar-icon" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    focusable="false"
+                    aria-hidden="true">
+                    <path d="M8 3h8" />
+                    <path d="M9 3v2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3V3" />
+                    <path d="M9 13h6" />
+                  </svg>
+                </div>
+                <h3 class="jar-name">{{ jar.name }}</h3>
+                <p class="jar-rate">{{ jar.percentage | number: '1.0-2' }}%</p>
+                <p class="jar-amount">{{ jar.budgetVnd | vnd }}</p>
+              </li>
+            }
+          </ul>
+        </section>
+      </section>
+    }
+  }
+
+  @case ('not-found') {
+    <section class="card state-panel" role="alert" aria-labelledby="state-title">
+      <div class="state-icon" aria-hidden="true">!</div>
+      <p class="state-period">{{ periodLabel() }}</p>
+      <h1 id="state-title">Monthly plan unavailable</h1>
+      <p class="state-message">There is no monthly plan for this period yet.</p>
+      <div class="state-actions">
+        <a class="btn btn-primary action-link" routerLink="/monthly-planning">Create a plan</a>
+      </div>
+    </section>
+  }
+
+  @case ('error') {
+    <section class="plan-content" aria-labelledby="plan-title">
+      <h1 id="plan-title">Month Budget Summary</h1>
+      <div class="card state-panel" role="alert">
+        <div class="state-icon" aria-hidden="true">!</div>
+        <p class="state-message">{{ errorMessage() }}</p>
+        <div class="state-actions">
+          <button type="button" class="btn btn-primary action-link" (click)="retry()">Try again</button>
+        </div>
+      </div>
+    </section>
+  }
+
+  @case ('invalid-period') {
+    <section class="plan-content" aria-labelledby="plan-title">
+      <h1 id="plan-title">Month Budget Summary</h1>
+      <div class="card state-panel" role="alert">
+        <div class="state-icon" aria-hidden="true">!</div>
+        <p class="state-message">This monthly plan link is not valid. Choose a month from monthly planning.</p>
+        <div class="state-actions">
+          <a class="btn btn-primary action-link" routerLink="/monthly-planning">Back to monthly planning</a>
+        </div>
+      </div>
+    </section>
+  }
+}

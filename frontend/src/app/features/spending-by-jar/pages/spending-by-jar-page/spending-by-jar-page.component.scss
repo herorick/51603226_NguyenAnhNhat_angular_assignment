@@ -1,0 +1,281 @@
+// Mobile first. Larger layouts start at 768px (tablet) and 1024px (laptop).
+// The shell (header, sidebar, `.page-main`) lives in the app component; this page only styles its own content.
+:host {
+  display: block;
+  width: 100%;
+  max-width: 71.75rem;
+  margin-inline: auto;
+}
+
+h1 {
+  margin: 0;
+  color: var(--color-text-heading);
+  font-size: 1.4375rem;
+  line-height: 1.22;
+  font-weight: 700;
+}
+
+p {
+  margin: 0;
+}
+
+// Long jar names, VND values and API messages must wrap instead of overflowing their card.
+.spending-meta,
+.state-message,
+.jar-name,
+.jar-amount {
+  overflow-wrap: anywhere;
+}
+
+// ── Back link and heading ────────────────────────────────────
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.5rem;
+  margin-top: 1.5rem;
+  color: var(--f1-slate);
+  font-size: var(--f1-label);
+  line-height: 1.4;
+  text-decoration: none;
+
+  span {
+    font-size: 1.25rem;
+    line-height: 0.5;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.spending-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.spending-title {
+  min-width: 0;
+}
+
+.spending-meta {
+  margin-top: 0.25rem;
+  color: var(--f1-charcoal);
+  font-size: var(--f1-small);
+  line-height: 1.4;
+}
+
+.spending-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+// Links styled with the global `.btn` primitives.
+.action-link {
+  min-height: 2.5rem;
+  text-decoration: none;
+}
+
+.back-link:focus-visible,
+.action-link:focus-visible {
+  outline: 0.1875rem solid var(--nt-focus);
+  outline-offset: 0.1875rem;
+}
+
+// ── Jar rows ─────────────────────────────────────────────────
+.jar-panel {
+  margin-top: 1.125rem;
+  padding: 1.25rem;
+  border-radius: 0.4375rem;
+  box-shadow: none;
+}
+
+.jar-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.25rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// The accent comes from the inline `--jar-color` custom property. Skeleton rows have none and use the grey track.
+.jar-row {
+  display: grid;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.jar-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+  color: var(--f1-navy);
+  font-size: var(--f1-small);
+  line-height: 1.4;
+}
+
+.jar-name {
+  min-width: 0;
+  font-weight: 700;
+}
+
+.jar-percent {
+  flex: 0 0 auto;
+  color: var(--f1-charcoal);
+  font-weight: 700;
+}
+
+// Track and fill. The fill width is the capped `barWidth`, so it never leaves the track.
+.progress {
+  height: 0.5rem;
+  overflow: hidden;
+  border-radius: 0.25rem;
+  background: var(--f1-grey);
+}
+
+.progress-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--jar-color, var(--f1-jar-investment));
+}
+
+.jar-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  color: var(--f1-charcoal);
+  font-size: var(--f1-small);
+  line-height: 1.4;
+}
+
+// Over budget: the fill and percentage turn red, and the badge states it in words (never color only).
+.jar-row--over {
+  .progress-fill {
+    background: var(--f1-error);
+  }
+
+  .jar-percent {
+    color: var(--f1-error);
+  }
+}
+
+.over-badge {
+  padding: 0.0625rem 0.5rem;
+  border-radius: var(--radius-pill);
+  color: var(--f1-error);
+  background: var(--f1-error-tint);
+  font-size: var(--f1-label);
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+// ── Loading skeleton ─────────────────────────────────────────
+.loading-message {
+  margin-bottom: 1rem;
+  color: var(--f1-charcoal);
+  font-size: var(--f1-small);
+  line-height: 1.4;
+}
+
+.skeleton {
+  display: block;
+  border-radius: 0.25rem;
+  background: var(--f1-grey);
+}
+
+.skeleton-title {
+  width: 45%;
+  height: 0.875rem;
+}
+
+.skeleton-bar {
+  height: 0.5rem;
+}
+
+.skeleton-amount {
+  width: 30%;
+  height: 0.75rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .skeleton {
+    animation: skeleton-pulse 1.4s ease-in-out infinite;
+  }
+}
+
+@keyframes skeleton-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+// ── Not found, error, invalid period ─────────────────────────
+.state-panel {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 0.75rem;
+  width: min(35rem, 100%);
+  min-height: 9rem;
+  margin: 1.5rem auto 0;
+  padding: 2rem 1.25rem;
+  border-radius: 0.5rem;
+  box-shadow: none;
+  text-align: center;
+}
+
+.state-message {
+  color: var(--f1-charcoal);
+  font-size: var(--f1-body);
+  line-height: 1.5;
+}
+
+.state-icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--f1-error);
+  background: var(--f1-error-tint);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.625rem;
+  margin-top: 0.4375rem;
+}
+
+// ── Tablet ───────────────────────────────────────────────────
+@media (min-width: 48rem) {
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  .back-link {
+    margin-top: 1.75rem;
+  }
+
+  .jar-panel {
+    padding: 1.5rem;
+  }
+
+  .jar-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem 1.75rem;
+  }
+}

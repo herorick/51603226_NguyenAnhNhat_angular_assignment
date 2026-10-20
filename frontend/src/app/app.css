@@ -1,0 +1,12 @@
+.shell {
+  display: flex;
+  width: min(1440px, 100%);
+  min-height: calc(100dvh - 60px);
+  margin: 0 auto;
+}
+
+.page-main {
+  flex: 1;
+  min-width: 0;
+  padding: 0 28px 48px;
+}

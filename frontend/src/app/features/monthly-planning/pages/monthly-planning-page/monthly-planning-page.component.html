@@ -1,0 +1,202 @@
+<nav class="breadcrumbs" aria-label="Breadcrumb">
+  <a routerLink="/monthly-planning" aria-label="Home">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      focusable="false"
+      aria-hidden="true">
+      <path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" />
+      <path
+        d="M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+    </svg>
+  </a>
+  <span class="breadcrumb-separator" aria-hidden="true">/</span>
+  <a routerLink="/monthly-planning">Monthly planning</a>
+  <span class="breadcrumb-separator" aria-hidden="true">/</span>
+  <span aria-current="page">Create monthly plan</span>
+</nav>
+
+<section class="intro" aria-labelledby="page-title">
+  <div class="intro-icon" aria-hidden="true">
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="2"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      focusable="false"
+      aria-hidden="true">
+      <path d="M8 2v4M16 2v4" />
+      <rect x="3" y="4" width="18" height="18" rx="2" />
+      <path d="M3 10h18" />
+      <path d="m9 16 2 2 4-4" />
+    </svg>
+  </div>
+  <div>
+    <h1 id="page-title">Create your monthly budget</h1>
+    <p class="intro-copy">Set your income for a month and we will prepare your seven budgeting jars.</p>
+  </div>
+</section>
+
+<div class="content-grid">
+  <section class="card panel details-panel" aria-labelledby="details-title">
+    <h2 id="details-title">Plan details</h2>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="period">
+          Month
+          <span class="required" aria-hidden="true">*</span>
+        </label>
+        <div class="control" [class.is-invalid]="periodError()">
+          <input
+            #periodInput
+            id="period"
+            type="month"
+            formControlName="period"
+            aria-required="true"
+            [attr.aria-invalid]="periodError() ? 'true' : null"
+            [attr.aria-describedby]="periodError() ? 'period-error' : null" />
+        </div>
+        @if (periodError()) {
+          <p id="period-error" class="field-error" role="alert">{{ periodError() }}</p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="monthly-income">
+          Monthly income
+          <span class="required" aria-hidden="true">*</span>
+        </label>
+        <div class="control" [class.is-invalid]="incomeError()">
+          <span class="control-icon" aria-hidden="true">
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              focusable="false"
+              aria-hidden="true">
+              <rect x="2" y="6" width="20" height="12" rx="2" />
+              <circle cx="12" cy="12" r="2" />
+              <path d="M6 12h.01M18 12h.01" />
+            </svg>
+          </span>
+          <input
+            #incomeInput
+            id="monthly-income"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="30,000,000"
+            formControlName="monthlyIncomeVnd"
+            aria-required="true"
+            [attr.aria-invalid]="incomeError() ? 'true' : null"
+            [attr.aria-describedby]="incomeError() ? 'income-error' : null" />
+          <span class="currency-suffix">VND</span>
+        </div>
+        @if (incomeError()) {
+          <p id="income-error" class="field-error" role="alert">{{ incomeError() }}</p>
+        }
+      </div>
+
+      <hr class="form-divider" />
+
+      <output aria-live="polite" class="status-message">{{ statusMessage() }}</output>
+
+      @if (conflict(); as c) {
+        <div class="form-alert" role="alert">
+          <p>{{ c.message }}</p>
+          <a [routerLink]="['/monthly-plans', c.year, c.month]">View the existing plan</a>
+        </div>
+      }
+
+      @if (submitError(); as message) {
+        <p class="form-alert" role="alert">{{ message }}</p>
+      }
+
+      <button type="submit" class="btn btn-primary primary-button" [disabled]="submitDisabled()">
+        Create monthly plan
+      </button>
+
+      <p class="one-plan-note">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          focusable="false"
+          aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M12 11v5M12 8h.01" />
+        </svg>
+        <span>One plan can be created per month.</span>
+      </p>
+    </form>
+  </section>
+
+  <section class="card panel allocation-panel" aria-labelledby="allocation-title">
+    <div class="allocation-heading">
+      <div>
+        <p class="eyebrow">Fixed allocation</p>
+        <h2 id="allocation-title">Your default allocation</h2>
+      </div>
+      @if (defaultJarsStatus() === 'ready' && defaultJars(); as response) {
+        <span class="allocation-status">
+          <span aria-hidden="true" class="status-check">✓</span>
+          {{ response.totalPercentage }}% allocated
+        </span>
+      }
+    </div>
+
+    @switch (defaultJarsStatus()) {
+      @case ('loading') {
+        <p class="loading" aria-live="polite">Loading your default allocation…</p>
+      }
+      @case ('error') {
+        <div class="allocation-error" role="alert">
+          <p class="error">We could not load the default allocation.</p>
+          <button type="button" class="btn btn-secondary" (click)="loadDefaultJars()">Try again</button>
+        </div>
+      }
+      @case ('ready') {
+        @if (defaultJars(); as response) {
+          <p class="allocation-copy">These rates are fixed for your first monthly plan.</p>
+          <ul aria-label="Default jar allocation" class="allocation-grid">
+            @for (jar of response.jars; track jar.jarType) {
+              <li class="jar" [style.--jar-color]="jarColor(jar.jarType)">
+                <div class="jar-icon" aria-hidden="true">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    focusable="false"
+                    aria-hidden="true">
+                    <path d="M8 3h8" />
+                    <path d="M9 3v2a3 3 0 0 0-3 3v10a3 3 0 0 0 3 3h6a3 3 0 0 0 3-3V8a3 3 0 0 0-3-3V3" />
+                    <path d="M9 13h6" />
+                  </svg>
+                </div>
+                <h3 class="jar-name">{{ jar.name }}</h3>
+                <p class="jar-rate">{{ jar.percentage }}%</p>
+                <p class="jar-logic">{{ jar.suggestedLogic }}</p>
+              </li>
+            }
+          </ul>
+        }
+      }
+    }
+  </section>
+</div>

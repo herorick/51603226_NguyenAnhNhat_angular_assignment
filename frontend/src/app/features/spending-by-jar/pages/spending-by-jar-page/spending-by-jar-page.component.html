@@ -1,0 +1,108 @@
+@if (status() !== 'invalid-period') {
+  <a class="back-link" routerLink="/monthly-planning">
+    <span aria-hidden="true">‹</span>
+    Back to monthly planning
+  </a>
+}
+
+<section class="spending-content" aria-labelledby="spending-title">
+  <div class="spending-heading">
+    <div class="spending-title">
+      <h1 id="spending-title">Spending by jar</h1>
+      @if (periodLabel()) {
+        <p class="spending-meta">{{ periodLabel() }} · Amounts in VND</p>
+      }
+    </div>
+
+    @if (status() !== 'not-found' && period(); as currentPeriod) {
+      <div class="spending-actions">
+        <a
+          class="btn btn-secondary action-link"
+          [routerLink]="['/monthly-plans', currentPeriod.year, currentPeriod.month]">
+          View plan
+        </a>
+        <a class="btn btn-primary action-link" routerLink="/expenses/new" [queryParams]="addExpenseQueryParams()">
+          Add expense
+        </a>
+      </div>
+    }
+  </div>
+
+  @switch (status()) {
+    @case ('loading') {
+      <div class="card jar-panel">
+        <p class="loading-message" role="status" aria-live="polite">Loading spending by jar…</p>
+        <div class="jar-list" aria-hidden="true">
+          @for (n of skeletonRows; track n) {
+            <div class="jar-row">
+              <span class="skeleton skeleton-title"></span>
+              <span class="skeleton skeleton-bar"></span>
+              <span class="skeleton skeleton-amount"></span>
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    @case ('ready') {
+      <div class="card jar-panel">
+        <ul class="jar-list" role="list" aria-label="Spending by jar">
+          @for (row of rows(); track row.jarType) {
+            <li class="jar-row" [class.jar-row--over]="row.overBudget" [style.--jar-color]="row.color">
+              <div class="jar-heading">
+                <span class="jar-name">{{ row.jarName }}</span>
+                <span class="jar-percent">{{ row.percentLabel }}</span>
+              </div>
+              <div
+                class="progress"
+                role="progressbar"
+                aria-valuemin="0"
+                aria-valuemax="100"
+                [attr.aria-valuenow]="row.ariaValueNow"
+                [attr.aria-valuetext]="row.ariaValueText"
+                [attr.aria-label]="row.ariaLabel">
+                <span class="progress-fill" [style.width.%]="row.barWidth"></span>
+              </div>
+              <div class="jar-footer">
+                <span class="jar-amount">{{ row.spentText }} / {{ row.plannedText }}</span>
+                @if (row.overBudget) {
+                  <span class="over-badge">Over budget</span>
+                }
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+
+    @case ('not-found') {
+      <div class="card state-panel" role="alert">
+        <div class="state-icon" aria-hidden="true">!</div>
+        <p class="state-message">There is no monthly plan for this period yet.</p>
+        <div class="state-actions">
+          <a class="btn btn-primary action-link" routerLink="/monthly-planning">Create a plan</a>
+        </div>
+      </div>
+    }
+
+    @case ('error') {
+      <div class="card state-panel" role="alert">
+        <div class="state-icon" aria-hidden="true">!</div>
+        <p class="state-message">{{ errorMessage() }}</p>
+        <div class="state-actions">
+          <button type="button" class="btn btn-primary action-link" (click)="retry()">Try again</button>
+        </div>
+      </div>
+    }
+
+    @case ('invalid-period') {
+      <div class="card state-panel" role="alert">
+        <div class="state-icon" aria-hidden="true">!</div>
+        <p class="state-message">This spending link is not valid. Choose a month from monthly planning.</p>
+        <div class="state-actions">
+          <a class="btn btn-primary action-link" routerLink="/monthly-planning">Back to monthly planning</a>
+        </div>
+      </div>
+    }
+  }
+</section>

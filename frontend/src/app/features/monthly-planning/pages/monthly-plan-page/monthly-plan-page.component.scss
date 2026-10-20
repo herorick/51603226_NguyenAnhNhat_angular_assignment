@@ -1,0 +1,389 @@
+// Mobile first. Larger layouts start at 768px (tablet) and 1024px (laptop).
+// The shell (header, sidebar, `.page-main`) lives in the app component; this page only styles its own content.
+:host {
+  display: block;
+  width: 100%;
+  max-width: 71.75rem;
+  margin-inline: auto;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--color-text-heading);
+}
+
+h1 {
+  font-size: 1.4375rem;
+  line-height: 1.22;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+p {
+  margin: 0;
+}
+
+// Long jar names, VND values and API messages must wrap instead of overflowing their card.
+.income-value,
+.state-message,
+.legend-name,
+.jar-name,
+.jar-amount {
+  overflow-wrap: anywhere;
+}
+
+// ── Back link and heading ────────────────────────────────────
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 1.5rem;
+  margin-top: 1.5rem;
+  color: var(--f1-slate);
+  font-size: var(--f1-label);
+  line-height: 1.4;
+  text-decoration: none;
+
+  span {
+    font-size: 1.25rem;
+    line-height: 0.5;
+  }
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.plan-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem 1rem;
+  margin-top: 0.75rem;
+}
+
+.plan-content > h1 {
+  margin-top: 0.75rem;
+}
+
+.plan-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+// Links styled with the global `.btn` primitives.
+.action-link {
+  min-height: 2.5rem;
+  text-decoration: none;
+}
+
+.back-link:focus-visible,
+.action-link:focus-visible {
+  outline: 0.1875rem solid var(--nt-focus);
+  outline-offset: 0.1875rem;
+}
+
+// ── Summary: income and donut ────────────────────────────────
+.summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.125rem;
+  align-items: center;
+  margin-top: 1.125rem;
+  padding: 1.25rem;
+  border-radius: 0.4375rem;
+  box-shadow: none;
+}
+
+.income {
+  display: grid;
+  grid-template-columns: 2.375rem minmax(0, 1fr);
+  column-gap: 0.5625rem;
+  align-items: start;
+  padding-bottom: 1.125rem;
+  border-bottom: 0.0625rem solid var(--f1-grey);
+}
+
+.income-icon {
+  display: grid;
+  width: 2.375rem;
+  height: 2.375rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--f1-jar-investment);
+  background: var(--f1-jar-investment-tint);
+
+  svg {
+    width: 1.25rem;
+    height: 1.25rem;
+  }
+}
+
+.income-label {
+  padding-top: 0.125rem;
+  font-size: var(--f1-small);
+  font-weight: 600;
+}
+
+.income-value {
+  grid-column: 2;
+  margin-top: 0.25rem;
+  color: var(--color-text-heading);
+  font-size: 1.3125rem;
+  font-weight: 700;
+}
+
+.income-meta {
+  grid-column: 2;
+  margin-top: 0.5rem;
+  color: var(--f1-slate);
+  font-size: var(--f1-label);
+}
+
+.allocation {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 1.125rem;
+  align-items: center;
+}
+
+// SVG ring (circumference 100, so each `percentage` is a dash length). Decorative: the legend carries the data.
+.donut {
+  position: relative;
+  width: 7.5rem;
+  height: 7.5rem;
+  margin-inline: auto;
+
+  svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.donut-label {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  color: var(--color-text-heading);
+  font-size: var(--f1-small);
+  font-weight: 700;
+}
+
+.legend {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  font-size: var(--f1-label);
+  list-style: none;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.legend-name {
+  display: flex;
+  align-items: center;
+  gap: 0.5625rem;
+  min-width: 0;
+}
+
+// A leading dot from the item's `--jar-color`; the jar name and its rate always sit next to it as text.
+.legend-swatch {
+  flex: 0 0 auto;
+  width: 0.5625rem;
+  height: 0.5625rem;
+  border-radius: 50%;
+  background: var(--jar-color);
+}
+
+.legend-rate {
+  flex: 0 0 auto;
+  font-weight: 600;
+}
+
+// ── Seven jars ───────────────────────────────────────────────
+.section-title {
+  margin: 2rem 0 0.125rem;
+}
+
+.section-copy {
+  color: var(--f1-slate);
+  font-size: var(--f1-small);
+  line-height: 1.4;
+}
+
+.jar-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 9.5rem), 1fr));
+  gap: 0.75rem;
+  margin: 1.125rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+// The accent comes from the inline `--jar-color` custom property; tints are derived from it, never per jar.
+.jar-card {
+  --jar-bg: color-mix(in srgb, var(--jar-color) 6%, var(--f1-surface));
+  --jar-icon-bg: color-mix(in srgb, var(--jar-color) 16%, var(--f1-surface));
+
+  position: relative;
+  min-width: 0;
+  min-height: 9.5rem;
+  overflow: hidden;
+  padding: 1.5rem 1rem 1rem;
+  border: 0.0625rem solid var(--f1-grey);
+  border-radius: 0.375rem;
+  background: var(--jar-bg);
+
+  &::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 0.25rem;
+    background: var(--jar-color);
+    content: '';
+  }
+}
+
+.jar-icon {
+  display: grid;
+  width: 2.25rem;
+  height: 2.25rem;
+  place-items: center;
+  margin-bottom: 0.4375rem;
+  border-radius: 50%;
+  color: var(--jar-color);
+  background: var(--jar-icon-bg);
+
+  svg {
+    width: 1.1875rem;
+    height: 1.1875rem;
+  }
+}
+
+.jar-name {
+  min-height: 2.25rem;
+  color: var(--f1-navy);
+  font-size: var(--f1-small);
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.jar-rate {
+  margin-top: 0.125rem;
+  color: var(--jar-color);
+  font-size: 1.625rem;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.jar-amount {
+  margin-top: 0.25rem;
+  color: var(--f1-slate);
+  font-size: var(--f1-label);
+}
+
+// ── Loading, not found, error, invalid period ────────────────
+.state-panel {
+  display: grid;
+  justify-items: center;
+  gap: 0.75rem;
+  width: min(35rem, 100%);
+  min-height: 9rem;
+  margin: 1.5rem auto 0;
+  padding: 2rem 1.25rem;
+  border-radius: 0.5rem;
+  box-shadow: none;
+  text-align: center;
+  align-content: center;
+}
+
+.state-message,
+.state-period {
+  color: var(--f1-slate);
+  font-size: var(--f1-body);
+  line-height: 1.5;
+}
+
+.state-period {
+  font-size: var(--f1-label);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.state-icon {
+  display: grid;
+  width: 3rem;
+  height: 3rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--f1-error);
+  background: var(--f1-error-tint);
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.state-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.625rem;
+  margin-top: 0.4375rem;
+}
+
+// ── Tablet ───────────────────────────────────────────────────
+@media (min-width: 48rem) {
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  .back-link {
+    margin-top: 1.75rem;
+  }
+
+  .summary {
+    padding: 1.25rem 1.5rem;
+  }
+
+  .allocation {
+    grid-template-columns: 9.375rem minmax(0, 1fr);
+    gap: 1.125rem 1.5rem;
+  }
+
+  .jar-grid {
+    gap: 1rem;
+  }
+}
+
+// ── Laptop ───────────────────────────────────────────────────
+@media (min-width: 64rem) {
+  .summary {
+    grid-template-columns: minmax(15rem, 16.25rem) minmax(0, 1fr);
+    gap: 1.5rem;
+  }
+
+  .income {
+    padding: 0 1.125rem 0 0;
+    border-right: 0.0625rem solid var(--f1-grey);
+    border-bottom: 0;
+  }
+
+  .allocation {
+    grid-template-columns: 11.875rem minmax(0, 1fr);
+  }
+}

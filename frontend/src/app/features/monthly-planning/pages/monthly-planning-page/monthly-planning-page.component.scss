@@ -1,0 +1,464 @@
+// Mobile first. Larger layouts start at 768px (tablet) and 1024px (laptop).
+:host {
+  display: block;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--color-text-heading);
+}
+
+h1 {
+  font-size: 1.4375rem;
+  line-height: 1.22;
+  font-weight: 700;
+}
+
+h2 {
+  font-size: 1.25rem;
+  line-height: 1.4;
+}
+
+// Long names, copy and API messages must wrap instead of overflowing their card.
+.intro-copy,
+.field-error,
+.status-message,
+.form-alert,
+.allocation-copy,
+.jar-name,
+.jar-logic {
+  overflow-wrap: anywhere;
+}
+
+.breadcrumbs,
+.intro,
+.content-grid {
+  width: 100%;
+  max-width: 71.75rem;
+  margin-inline: auto;
+}
+
+// ── Breadcrumbs ──────────────────────────────────────────────
+.breadcrumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 1.5rem;
+  color: var(--f1-slate);
+  font-size: var(--f1-label);
+  line-height: 1.4;
+
+  a {
+    display: inline-flex;
+    align-items: center;
+    min-width: 1.5rem;
+    min-height: 1.5rem;
+    color: inherit;
+    text-decoration: none;
+
+    &:hover {
+      text-decoration: underline;
+    }
+
+    &:focus-visible {
+      outline: 0.1875rem solid var(--nt-focus);
+      outline-offset: 0.1875rem;
+    }
+  }
+
+  svg {
+    width: 1.125rem;
+    height: 1.125rem;
+  }
+}
+
+// ── Intro ────────────────────────────────────────────────────
+.intro {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.intro-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2.875rem;
+  height: 2.875rem;
+  place-items: center;
+  border-radius: 0.875rem;
+  color: var(--f1-green);
+  background: var(--f1-green-tint);
+
+  svg {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+}
+
+.intro-copy {
+  margin: 0.1875rem 0 0;
+  color: var(--f1-slate);
+  font-size: var(--f1-small);
+  line-height: 1.5;
+}
+
+// ── Layout and panels ────────────────────────────────────────
+.content-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-items: start;
+  gap: 1.1875rem;
+  padding-bottom: 3rem;
+}
+
+.panel {
+  min-width: 0;
+  padding: 1.25rem 1.125rem;
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+// ── Plan details form ────────────────────────────────────────
+.field {
+  margin-top: 1.5rem;
+
+  label {
+    display: block;
+    margin-bottom: 0.4375rem;
+    font-size: var(--f1-small);
+    line-height: 1.4;
+    font-weight: 700;
+  }
+}
+
+.control {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.875rem;
+  padding: 0 0.8125rem;
+  border: 0.0625rem solid var(--f1-grey);
+  border-radius: 0.4375rem;
+  color: var(--f1-slate);
+  background: var(--f1-surface);
+
+  &:focus-within {
+    outline: 0.1875rem solid var(--nt-focus);
+    outline-offset: 0.125rem;
+  }
+
+  // The wrapper owns the border and focus ring, so the global input primitive is neutralised inside it.
+  input {
+    width: 100%;
+    min-width: 0;
+    min-height: 2.625rem;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    outline: 0;
+    box-shadow: none;
+    color: var(--f1-charcoal);
+    background: transparent;
+    font: inherit;
+    font-size: var(--f1-body);
+  }
+}
+
+.control-icon {
+  display: grid;
+  flex: 0 0 auto;
+  width: 1.3125rem;
+  height: 1.3125rem;
+  place-items: center;
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+.currency-suffix {
+  flex: 0 0 auto;
+  color: var(--f1-slate);
+  font-size: var(--f1-small);
+  font-weight: 600;
+}
+
+.field-error {
+  margin: 0.4375rem 0 0;
+  line-height: 1.4;
+}
+
+.form-divider {
+  height: 0.0625rem;
+  margin: 1.8125rem 0 1.4375rem;
+  border: 0;
+  background: var(--f1-grey);
+}
+
+.status-message {
+  display: block;
+  margin: 0 0 0.875rem;
+  padding: 0.625rem 0.75rem;
+  border-radius: 0.375rem;
+  color: var(--f1-charcoal);
+  background: var(--f1-lavender);
+  font-size: var(--f1-label);
+  line-height: 1.4;
+
+  // Keep the live region in the DOM (so updates are announced) but collapse it while it has no text.
+  &:empty {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+.form-alert {
+  margin: 0 0 0.875rem;
+  padding: 0.625rem 0.75rem;
+  border: 0.0625rem solid var(--f1-error);
+  border-left-width: 0.25rem;
+  border-radius: 0.375rem;
+  color: var(--f1-error);
+  background: var(--f1-error-tint);
+  font-size: var(--f1-small);
+  line-height: 1.4;
+
+  p {
+    margin: 0;
+  }
+
+  a {
+    display: inline-block;
+    margin-top: 0.375rem;
+    color: inherit;
+    font-weight: 700;
+    text-decoration: underline;
+
+    &:focus-visible {
+      outline: 0.1875rem solid var(--nt-focus);
+      outline-offset: 0.125rem;
+    }
+  }
+}
+
+.primary-button {
+  gap: 0.5625rem;
+  width: 100%;
+  min-height: 2.875rem;
+  padding: 0 1rem;
+  border-radius: 0.4375rem;
+  font-size: var(--f1-body);
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--nt-focus);
+    outline-offset: 0.125rem;
+  }
+}
+
+.one-plan-note {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5625rem;
+  margin: 0.9375rem 0 0;
+  color: var(--f1-slate);
+  font-size: var(--f1-label);
+  line-height: 1.4;
+
+  svg {
+    flex: 0 0 auto;
+    width: 0.9375rem;
+    height: 0.9375rem;
+  }
+}
+
+// ── Default allocation ───────────────────────────────────────
+.allocation-heading {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+}
+
+.eyebrow {
+  margin: 0 0 0.1875rem;
+  color: var(--f1-red);
+  font-size: var(--f1-label);
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.allocation-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex: 0 0 auto;
+  padding: 0.3125rem 0.625rem;
+  border-radius: 0.875rem;
+  color: var(--f1-green);
+  background: var(--f1-green-tint);
+  font-size: var(--f1-label);
+  line-height: 1.3;
+}
+
+.status-check {
+  display: grid;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--f1-surface);
+  background: var(--f1-green);
+  font-size: 0.625rem;
+}
+
+.allocation-copy {
+  margin: 0.125rem 0 1.0625rem;
+  color: var(--f1-slate);
+  font-size: var(--f1-small);
+  line-height: 1.4;
+}
+
+.allocation-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-top: 1rem;
+
+  p {
+    margin: 0;
+  }
+}
+
+.allocation-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 8.5rem), 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+// The jar accent comes from the inline `--jar-color` custom property; tints are derived from it, never per jar.
+.jar {
+  --jar-bg: color-mix(in srgb, var(--jar-color) 6%, var(--f1-surface));
+  --jar-icon-bg: color-mix(in srgb, var(--jar-color) 16%, var(--f1-surface));
+
+  position: relative;
+  min-width: 0;
+  min-height: 8.75rem;
+  overflow: hidden;
+  padding: 1rem 0.75rem 0.75rem 0.875rem;
+  border: 0.0625rem solid var(--f1-grey);
+  border-radius: 0.5rem;
+  background: var(--jar-bg);
+
+  &::before {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 0.3125rem;
+    background: var(--jar-color);
+    content: '';
+  }
+}
+
+.jar-icon {
+  display: grid;
+  width: 2.625rem;
+  height: 2.625rem;
+  place-items: center;
+  margin-bottom: 0.5rem;
+  border-radius: 50%;
+  color: var(--jar-color);
+  background: var(--jar-icon-bg);
+
+  svg {
+    width: 1.375rem;
+    height: 1.375rem;
+  }
+}
+
+.jar-name {
+  min-height: 2.25rem;
+  margin: 0 0 0.25rem;
+  color: var(--f1-navy);
+  font-size: var(--f1-small);
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.jar-rate {
+  margin: 0;
+  color: var(--jar-color);
+  font-size: 1.625rem;
+  line-height: 1.15;
+  font-weight: 700;
+}
+
+.jar-logic {
+  margin: 0.5rem 0 0;
+  color: var(--f1-slate);
+  font-size: var(--f1-label);
+  line-height: 1.4;
+}
+
+// ── Tablet ───────────────────────────────────────────────────
+@media (min-width: 48rem) {
+  h1 {
+    font-size: 1.75rem;
+  }
+
+  .intro {
+    gap: 1.1875rem;
+    margin-top: 2.25rem;
+    margin-bottom: 1.625rem;
+  }
+
+  .intro-icon {
+    width: 3.5rem;
+    height: 3.5rem;
+    border-radius: 1.125rem;
+  }
+
+  .intro-copy {
+    font-size: var(--f1-body);
+  }
+
+  .panel {
+    padding: 1.4375rem 1.6875rem 1.5rem;
+  }
+
+  .allocation-heading {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .allocation-copy {
+    margin-bottom: 1.5rem;
+  }
+
+  .allocation-grid {
+    gap: 1rem;
+  }
+}
+
+// ── Laptop ───────────────────────────────────────────────────
+@media (min-width: 64rem) {
+  .content-grid {
+    grid-template-columns: minmax(22.5rem, 28.6875rem) minmax(0, 1fr);
+  }
+
+  .details-panel,
+  .allocation-panel {
+    min-height: 27.875rem;
+  }
+}

@@ -1,0 +1,97 @@
+:host {
+  display: block;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 3.75rem;
+  padding-block: 0;
+  padding-left: max(0px, calc((100vw - 90rem) / 2));
+  padding-right: max(1.75rem, calc((100vw - 90rem) / 2 + 1.75rem));
+  color: var(--f1-surface);
+  background: var(--f1-navy);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-width: 0;
+  color: inherit;
+  font-size: 1.125rem;
+  font-weight: 700;
+  text-decoration: none;
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--nt-focus);
+    outline-offset: 0.125rem;
+  }
+}
+
+.brand-mark {
+  display: grid;
+  flex: 0 0 auto;
+  width: 1.8125rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 0.125rem;
+  color: var(--f1-green);
+  background: var(--f1-surface);
+
+  svg {
+    width: 1.1875rem;
+    height: 1.1875rem;
+  }
+}
+
+.header-spacer {
+  flex: 1;
+}
+
+.account-menu {
+  position: relative;
+}
+
+.account-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  cursor: pointer;
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--nt-focus);
+    outline-offset: 0.125rem;
+  }
+}
+
+.user-name {
+  color: var(--f1-surface);
+  font-size: var(--f1-small);
+  font-weight: 600;
+}
+
+.avatar {
+  display: grid;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border-radius: 50%;
+  color: var(--f1-surface);
+  background: var(--f1-red);
+  font-size: var(--f1-label);
+  font-weight: 700;
+}
+
+.account-chevron {
+  flex: 0 0 auto;
+  width: 1rem;
+  height: 1rem;
+}

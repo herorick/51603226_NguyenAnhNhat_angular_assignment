@@ -1,0 +1,223 @@
+<a class="back-link" routerLink="/dashboard">
+  <span aria-hidden="true">‹</span>
+  Back to expenses
+</a>
+
+<section class="page-intro" aria-labelledby="expense-title">
+  <h1 id="expense-title">Add an expense</h1>
+  <p class="intro-copy">Record a purchase and assign it to the right jar in your monthly plan.</p>
+</section>
+
+<div class="expense-layout">
+  <section class="card panel details-panel" aria-labelledby="details-title">
+    <h2 id="details-title">Expense details</h2>
+    <p class="panel-copy">Choose a jar and enter the expense details.</p>
+
+    <!-- Always in the DOM so the save announcement fires when the text appears. -->
+    <div class="save-result" role="status" aria-live="polite">
+      @if (saved(); as result) {
+        <p class="save-success">Expense saved: {{ result.expense.amountVnd | vnd }} to {{ result.expense.jarName }}.</p>
+      }
+    </div>
+
+    <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="expense-date">
+          Expense date
+          <span class="required" aria-hidden="true">*</span>
+        </label>
+        <div class="control" [class.is-invalid]="expenseDateError()">
+          <input
+            #dateInput
+            id="expense-date"
+            type="date"
+            formControlName="expenseDate"
+            aria-required="true"
+            [attr.aria-invalid]="expenseDateError() ? 'true' : null"
+            [attr.aria-describedby]="
+              expenseDateError() ? 'expense-date-error' : planStatus() === 'idle' ? 'expense-date-hint' : null
+            " />
+        </div>
+        @if (expenseDateError(); as message) {
+          <p id="expense-date-error" class="field-error" role="alert">{{ message }}</p>
+        }
+
+        @if (planStatus() === 'idle') {
+          <p id="expense-date-hint" class="field-hint">Select an expense date to load the jars.</p>
+        }
+
+        <p class="field-hint" role="status" aria-live="polite">
+          @if (planStatus() === 'loading') {
+            Loading jars for the selected month…
+          }
+        </p>
+
+        @switch (planStatus()) {
+          @case ('not-found') {
+            <div id="expense-plan-alert" class="form-alert" role="alert">
+              <p class="alert-title">Create a monthly plan before adding an expense</p>
+              <p>There is no monthly plan for {{ planPeriodLabel() }} yet.</p>
+              <a routerLink="/monthly-planning">Create a plan</a>
+            </div>
+          }
+          @case ('error') {
+            <div id="expense-plan-alert" class="form-alert" role="alert">
+              <p>{{ planErrorMessage() }}</p>
+              <button type="button" class="btn btn-secondary retry-button" (click)="retryPlan()">Try again</button>
+            </div>
+          }
+        }
+      </div>
+
+      <div class="field">
+        <label for="expense-jar">
+          Jar
+          <span class="required" aria-hidden="true">*</span>
+        </label>
+        <div class="control" [class.is-invalid]="jarError()">
+          <select
+            #jarSelect
+            id="expense-jar"
+            formControlName="jarType"
+            aria-required="true"
+            [attr.aria-invalid]="jarError() ? 'true' : null"
+            [attr.aria-describedby]="jarDescribedBy()">
+            <option value="">Select a jar</option>
+            @for (jar of jars(); track jar.jarType) {
+              <option [value]="jar.jarType">{{ jar.name }} · {{ jar.percentage | number: '1.0-2' }}%</option>
+            }
+          </select>
+        </div>
+        @if (jarError(); as message) {
+          <p id="expense-jar-error" class="field-error" role="alert">{{ message }}</p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="expense-amount">
+          Amount
+          <span class="required" aria-hidden="true">*</span>
+        </label>
+        <div class="control" [class.is-invalid]="amountError()">
+          <input
+            #amountInput
+            id="expense-amount"
+            type="text"
+            inputmode="numeric"
+            autocomplete="off"
+            placeholder="1,250,000"
+            formControlName="amountVnd"
+            aria-required="true"
+            [attr.aria-invalid]="amountError() ? 'true' : null"
+            [attr.aria-describedby]="amountError() ? 'expense-amount-error' : null" />
+          <span class="currency-suffix">VND</span>
+        </div>
+        @if (amountError(); as message) {
+          <p id="expense-amount-error" class="field-error" role="alert">{{ message }}</p>
+        }
+      </div>
+
+      <div class="field">
+        <label for="expense-description">
+          Description
+          <span class="required" aria-hidden="true">*</span>
+        </label>
+        <div class="control" [class.is-invalid]="descriptionError()">
+          <input
+            #descriptionInput
+            id="expense-description"
+            type="text"
+            placeholder="e.g. Weekly groceries"
+            formControlName="description"
+            aria-required="true"
+            [attr.aria-invalid]="descriptionError() ? 'true' : null"
+            [attr.aria-describedby]="descriptionError() ? 'expense-description-error' : null" />
+        </div>
+        @if (descriptionError(); as message) {
+          <p id="expense-description-error" class="field-error" role="alert">{{ message }}</p>
+        }
+      </div>
+
+      <p class="status-message" role="status" aria-live="polite">{{ statusMessage() }}</p>
+
+      @if (submitError(); as message) {
+        <p class="form-alert" role="alert">{{ message }}</p>
+      }
+
+      <button type="submit" class="btn btn-primary save-button" [disabled]="saveDisabled()" [attr.aria-busy]="saving()">
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          focusable="false"
+          aria-hidden="true">
+          <path d="M20 6 9 17l-5-5" />
+        </svg>
+        @if (saving()) {
+          Saving…
+        } @else {
+          Save expense
+        }
+      </button>
+    </form>
+  </section>
+
+  <aside class="card panel summary-panel" aria-labelledby="selected-jar-title">
+    <h2 id="selected-jar-title">Selected jar</h2>
+    <p class="panel-copy">Assigned to this expense</p>
+
+    @if (selectedJar(); as jar) {
+      <div class="jar-summary">
+        <h3 class="jar-name">{{ jar.name }}</h3>
+        <dl class="facts">
+          <div class="fact">
+            <dt>Rate</dt>
+            <dd>{{ jar.percentage | number: '1.0-2' }}%</dd>
+          </div>
+          <div class="fact">
+            <dt>Plan budget</dt>
+            <dd>{{ jar.budgetVnd | vnd }}</dd>
+          </div>
+        </dl>
+      </div>
+    } @else {
+      <div class="jar-summary is-empty">
+        <p class="jar-name">Select a jar</p>
+        <p class="jar-hint">Choose a jar to assign this expense.</p>
+      </div>
+    }
+
+    <!-- Always in the DOM so the updated totals are announced after a save. -->
+    <div class="jar-totals" aria-live="polite" aria-atomic="true">
+      @if (selectedJarSummary(); as summary) {
+        <h3 class="totals-title">Jar spending totals</h3>
+        <dl class="facts">
+          <div class="fact">
+            <dt>Budget</dt>
+            <dd>{{ summary.budgetVnd | vnd }}</dd>
+          </div>
+          <div class="fact">
+            <dt>Spent</dt>
+            <dd>{{ summary.spentVnd | vnd }}</dd>
+          </div>
+          <div class="fact" [class.is-over]="overBudget()">
+            <dt>Remaining</dt>
+            <dd>
+              {{ summary.remainingVnd | vnd }}
+              @if (overBudget()) {
+                <span class="over-label">Over budget</span>
+              }
+            </dd>
+          </div>
+        </dl>
+      }
+    </div>
+
+    @if (!selectedJarSummary()) {
+      <p class="refresh-note">Jar spending totals refresh after the expense is saved.</p>
+    }
+  </aside>
+</div>

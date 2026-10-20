@@ -1,0 +1,88 @@
+// Mobile first: an icon rail whose labels stay available to assistive tech; the full sidebar starts at 768px.
+:host {
+  display: block;
+  flex: 0 0 auto;
+}
+
+.sidebar {
+  width: 3.5rem;
+  height: 100%;
+  padding: 1rem 0.5rem;
+  border-right: 0.0625rem solid var(--f1-grey);
+  background: var(--f1-surface);
+}
+
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  min-height: 2.375rem;
+  margin-bottom: 0.5625rem;
+  padding: 0 0.5rem;
+  border-radius: 0.375rem;
+  color: var(--f1-slate);
+  font-size: var(--f1-label);
+  text-decoration: none;
+
+  &:hover {
+    background: var(--surface-hover);
+  }
+
+  &:focus-visible {
+    outline: 0.1875rem solid var(--nt-focus);
+    outline-offset: 0.125rem;
+  }
+
+  &.active {
+    color: var(--f1-jar-investment);
+    background: var(--f1-lavender);
+    font-weight: 700;
+  }
+}
+
+.nav-icon {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 1.0625rem;
+  height: 1.0625rem;
+  place-items: center;
+  color: inherit;
+
+  svg {
+    width: 1.0625rem;
+    height: 1.0625rem;
+  }
+}
+
+.nav-label {
+  position: absolute;
+  width: 0.0625rem;
+  height: 0.0625rem;
+  margin: -0.0625rem;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+@media (min-width: 48rem) {
+  .sidebar {
+    width: 11rem;
+  }
+
+  .nav-item {
+    justify-content: flex-start;
+    padding: 0 1.1875rem;
+  }
+
+  .nav-label {
+    position: static;
+    width: auto;
+    height: auto;
+    margin: 0;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+  }
+}
