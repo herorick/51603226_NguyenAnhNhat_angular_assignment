@@ -2,7 +2,10 @@ import { ApiErrorResponse } from '../models/api-error.models';
 import {
   CreateExpenseResponse,
   DefaultJarsResponse,
+  MonthComparisonResponse,
+  MonthlyExpensesResponse,
   MonthlyPlanResponse,
+  MonthlyPlanSummary,
   SpendingByJarsResponse
 } from '../models/budget-plan.models';
 
@@ -200,4 +203,110 @@ export const OCTOBER_SPENDING_BY_JARS_FIXTURE: SpendingByJarsResponse = {
   ...SPENDING_BY_JARS_FIXTURE,
   month: 10,
   jars: SPENDING_BY_JARS_FIXTURE.jars.map((jar) => ({ ...jar, percentageUsed: 0, spentBudgetVnd: '0' }))
+};
+
+/**
+ * "All months" overview, newest first as the backend returns it: a partly spent month with one expense, an over-budget
+ * month (negative remaining, more than 100% used) and a month of the previous year with no expense yet.
+ */
+export const MONTHLY_PLAN_SUMMARIES_FIXTURE: MonthlyPlanSummary[] = [
+  {
+    year: 2026,
+    month: 11,
+    currency: 'VND',
+    monthlyIncomeVnd: '25000000',
+    spentVnd: '5000000',
+    remainingVnd: '20000000',
+    percentageUsed: 20,
+    expenseCount: 1,
+    createdAtUtc: '2026-11-01T00:00:00Z'
+  },
+  {
+    year: 2026,
+    month: 9,
+    currency: 'VND',
+    monthlyIncomeVnd: '25000000',
+    spentVnd: '30000000',
+    remainingVnd: '-5000000',
+    percentageUsed: 120,
+    expenseCount: 3,
+    createdAtUtc: '2026-09-01T00:00:00Z'
+  },
+  {
+    year: 2025,
+    month: 12,
+    currency: 'VND',
+    monthlyIncomeVnd: '10000000',
+    spentVnd: '3333333',
+    remainingVnd: '6666667',
+    percentageUsed: 33.33,
+    expenseCount: 0,
+    createdAtUtc: '2025-12-01T00:00:00Z'
+  }
+];
+
+/** Expenses of September 2026, newest first. */
+export const MONTHLY_EXPENSES_FIXTURE: MonthlyExpensesResponse = {
+  year: 2026,
+  month: 9,
+  currency: 'VND',
+  expenses: [
+    {
+      id: 11,
+      expenseDate: '2026-09-15',
+      jarType: 'food',
+      jarName: 'Food',
+      amountVnd: '1250000',
+      description: 'Weekly groceries',
+      createdAtUtc: '2026-09-15T08:00:00Z'
+    },
+    {
+      id: 10,
+      expenseDate: '2026-09-05',
+      jarType: 'livingExpenses',
+      jarName: 'Living Expenses',
+      amountVnd: '8000000',
+      description: 'Rent',
+      createdAtUtc: '2026-09-05T08:00:00Z'
+    }
+  ]
+};
+
+const comparisonJars = (spent: Partial<Record<string, string>>, income: number): MonthComparisonResponse['months'][number]['jars'] =>
+  DEFAULT_JARS_FIXTURE.jars.map((jar) => {
+    const planned = (income * jar.percentage) / 100;
+    const spentVnd = spent[jar.jarType] ?? '0';
+    return {
+      jarType: jar.jarType,
+      plannedBudgetVnd: String(planned),
+      spentBudgetVnd: spentVnd,
+      percentageUsed: Math.round((Number(spentVnd) / planned) * 10000) / 100
+    };
+  });
+
+/** September – November 2026: two months with a plan around October, which has none. */
+export const MONTH_COMPARISON_FIXTURE: MonthComparisonResponse = {
+  currency: 'VND',
+  jars: DEFAULT_JARS_FIXTURE.jars.map((jar) => ({ jarType: jar.jarType, name: jar.name })),
+  months: [
+    {
+      year: 2026,
+      month: 9,
+      hasPlan: true,
+      monthlyIncomeVnd: '20000000',
+      spentVnd: '10000000',
+      percentageUsed: 50,
+      jars: comparisonJars({ livingExpenses: '8000000', food: '2000000' }, 20000000)
+    },
+    { year: 2026, month: 10, hasPlan: false, monthlyIncomeVnd: '0', spentVnd: '0', percentageUsed: 0, jars: [] },
+    {
+      year: 2026,
+      month: 11,
+      hasPlan: true,
+      monthlyIncomeVnd: '20000000',
+      spentVnd: '15000000',
+      percentageUsed: 75,
+      jars: comparisonJars({ livingExpenses: '8000000', food: '7000000' }, 20000000)
+    }
+  ]
 };

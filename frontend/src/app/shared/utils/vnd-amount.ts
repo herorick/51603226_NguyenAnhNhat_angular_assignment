@@ -26,6 +26,44 @@ export const isPositiveWholeVnd = (digits: string): boolean =>
 /** True for a digit string with no non-zero digit (`0`, `000`): lets a form say "greater than zero" instead of "invalid". */
 export const isZeroWholeVnd = (digits: string): boolean => DIGITS_ONLY.test(digits) && !HAS_NON_ZERO_DIGIT.test(digits);
 
+/**
+ * Live input formatting for money fields: keeps only ASCII digits, drops leading zeros (a lone `0` stays so the form
+ * can still say "greater than zero") and groups thousands with commas: `1250000` -> `1,250,000`.
+ * The result always passes `normalizeVndInput`, so the API still receives plain digits.
+ */
+export const formatVndInput = (raw: string): string => {
+  const digits = raw.replace(/\D/g, '').replace(/^0+(?=\d)/, '');
+  return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+};
+
+/** Index in `formatted` that sits right after its `digitCount`-th digit: keeps the caret in place while regrouping. */
+export const caretAfterDigits = (formatted: string, digitCount: number): number => {
+  if (digitCount <= 0) {
+    return 0;
+  }
+  let seen = 0;
+  for (let index = 0; index < formatted.length; index++) {
+    if (/\d/.test(formatted[index]) && ++seen === digitCount) {
+      return index + 1;
+    }
+  }
+  return formatted.length;
+};
+
+const COMPACT_VND = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
+
+/**
+ * Short reading aid shown under a money input: `1,250,000` -> `≈ 1.25M VND`. Display only (never sent to the API),
+ * so the float conversion is acceptable here. Empty for invalid input or amounts below one thousand.
+ */
+export const describeVndInput = (raw: string): string => {
+  const digits = normalizeVndInput(raw);
+  if (!isPositiveWholeVnd(digits) || digits.length < 4) {
+    return '';
+  }
+  return `≈ ${COMPACT_VND.format(Number(digits))} VND`;
+};
+
 export const positiveWholeVndValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const value: unknown = control.value;
   if (typeof value !== 'string') {

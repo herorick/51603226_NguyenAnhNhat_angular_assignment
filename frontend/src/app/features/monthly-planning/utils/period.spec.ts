@@ -1,7 +1,18 @@
 import { FormControl } from '@angular/forms';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { firstDayOfPeriod, formatPeriodLabel, parsePeriod, parseRoutePeriod, periodValidator } from './period';
+import {
+  currentMonthSpendingPath,
+  currentPeriod,
+  firstDayOfPeriod,
+  formatPeriodInput,
+  formatPeriodLabel,
+  isSamePeriod,
+  parsePeriod,
+  parseRoutePeriod,
+  periodValidator,
+  shiftPeriod
+} from './period';
 
 describe('parseRoutePeriod', () => {
   it.each([
@@ -118,5 +129,89 @@ describe('periodValidator', () => {
 
     control.setValue('2027-01');
     expect(control.valid).toBe(true);
+  });
+});
+
+describe('formatPeriodInput', () => {
+  it.each([
+    [{ year: 2026, month: 9 }, '2026-09'],
+    [{ year: 2026, month: 12 }, '2026-12'],
+    [{ year: 5, month: 1 }, '0005-01'],
+    [{ year: 9999, month: 12 }, '9999-12']
+  ])('formats %o as %s', (period, expected) => {
+    expect(formatPeriodInput(period)).toBe(expected);
+  });
+
+  it('round-trips through parsePeriod', () => {
+    expect(parsePeriod(formatPeriodInput({ year: 1, month: 1 }))).toEqual({ year: 1, month: 1 });
+    expect(parsePeriod(formatPeriodInput({ year: 2026, month: 11 }))).toEqual({ year: 2026, month: 11 });
+  });
+});
+
+describe('currentPeriod and currentMonthSpendingPath', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it.each([
+    [new Date(2026, 0, 1), { year: 2026, month: 1 }],
+    [new Date(2026, 8, 30, 23, 59), { year: 2026, month: 9 }],
+    [new Date(2026, 11, 31, 23, 59), { year: 2026, month: 12 }]
+  ])('takes the local calendar month of %s', (date, expected) => {
+    expect(currentPeriod(date)).toEqual(expected);
+  });
+
+  it('defaults to today', () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 10, 13, 12));
+
+    expect(currentPeriod()).toEqual({ year: 2026, month: 11 });
+    expect(currentMonthSpendingPath()).toBe('/monthly-plans/2026/11/spending');
+  });
+
+  it('builds the spending route of the given date without zero padding', () => {
+    expect(currentMonthSpendingPath(new Date(2026, 8, 5))).toBe('/monthly-plans/2026/9/spending');
+    expect(currentMonthSpendingPath(new Date(2027, 0, 1))).toBe('/monthly-plans/2027/1/spending');
+  });
+});
+
+describe('shiftPeriod', () => {
+  it.each([
+    [{ year: 2026, month: 9 }, -1, { year: 2026, month: 8 }],
+    [{ year: 2026, month: 9 }, 1, { year: 2026, month: 10 }],
+    [{ year: 2026, month: 9 }, 0, { year: 2026, month: 9 }],
+    [{ year: 2026, month: 1 }, -1, { year: 2025, month: 12 }],
+    [{ year: 2026, month: 12 }, 1, { year: 2027, month: 1 }],
+    [{ year: 2026, month: 9 }, -13, { year: 2025, month: 8 }],
+    [{ year: 2026, month: 9 }, 24, { year: 2028, month: 9 }],
+    [{ year: 1, month: 2 }, -1, { year: 1, month: 1 }],
+    [{ year: 9999, month: 11 }, 1, { year: 9999, month: 12 }]
+  ])('moves %o by %i months to %o', (period, months, expected) => {
+    expect(shiftPeriod(period, months)).toEqual(expected);
+  });
+
+  it.each([
+    [{ year: 1, month: 1 }, -1],
+    [{ year: 9999, month: 12 }, 1],
+    [{ year: 1, month: 6 }, -12],
+    [{ year: 9999, month: 1 }, 12]
+  ])('returns null when %o moved by %i months leaves years 1-9999', (period, months) => {
+    expect(shiftPeriod(period, months)).toBeNull();
+  });
+});
+
+describe('isSamePeriod', () => {
+  it('is true for the same year and month in different objects', () => {
+    expect(isSamePeriod({ year: 2026, month: 9 }, { year: 2026, month: 9 })).toBe(true);
+  });
+
+  it.each([
+    ['another month', { year: 2026, month: 9 }, { year: 2026, month: 10 }],
+    ['another year', { year: 2026, month: 9 }, { year: 2025, month: 9 }],
+    ['a null first period', null, { year: 2026, month: 9 }],
+    ['a null second period', { year: 2026, month: 9 }, null],
+    ['two null periods', null, null]
+  ])('is false for %s', (_label, a, b) => {
+    expect(isSamePeriod(a, b)).toBe(false);
   });
 });

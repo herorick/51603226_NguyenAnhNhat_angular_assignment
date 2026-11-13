@@ -387,3 +387,32 @@ p {
     grid-template-columns: 11.875rem minmax(0, 1fr);
   }
 }
+
+// ── Back link + month switcher row ───────────────────────────
+.page-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 1.5rem;
+
+  .back-link {
+    margin-top: 0;
+  }
+}
+
+// ── Delete plan ──────────────────────────────────────────────
+.delete-button {
+  color: var(--f1-error);
+
+  &:hover:not(:disabled) {
+    background: var(--f1-error-tint);
+  }
+}
+
+.delete-error {
+  margin: 0.75rem 0 0;
+  color: var(--f1-error);
+  font-size: var(--f1-small);
+}

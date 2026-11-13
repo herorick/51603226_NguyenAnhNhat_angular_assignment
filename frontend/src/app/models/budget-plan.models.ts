@@ -84,3 +84,57 @@ export interface SpendingByJarsResponse {
   currency: 'VND';
   jars: SpendingByJar[];
 }
+
+/** One month in the "all months" overview. Money values are whole-VND digit strings computed by the backend. */
+export interface MonthlyPlanSummary {
+  year: number;
+  month: number;
+  currency: 'VND';
+  monthlyIncomeVnd: string;
+  spentVnd: string;
+  /** Income minus spent. May start with `-` when the month is over budget. */
+  remainingVnd: string;
+  /** Spent as a share of income, computed by the backend, 2 decimals at most. Can exceed 100. */
+  percentageUsed: number;
+  expenseCount: number;
+  createdAtUtc: string;
+}
+
+export interface ComparisonJar {
+  jarType: JarType;
+  name: string;
+}
+
+export interface ComparisonMonthJar {
+  jarType: JarType;
+  plannedBudgetVnd: string;
+  spentBudgetVnd: string;
+  /** Computed by the backend, 2 decimals at most. Can exceed 100. */
+  percentageUsed: number;
+}
+
+/** One calendar month of the range. A month without a plan has `hasPlan: false`, `"0"` amounts and no jars. */
+export interface ComparisonMonth {
+  year: number;
+  month: number;
+  hasPlan: boolean;
+  monthlyIncomeVnd: string;
+  spentVnd: string;
+  percentageUsed: number;
+  jars: ComparisonMonthJar[];
+}
+
+/** Spending by jar over consecutive months, oldest first. */
+export interface MonthComparisonResponse {
+  currency: 'VND';
+  /** Catalog jars in display order: drives the legend and the stacking order. */
+  jars: ComparisonJar[];
+  months: ComparisonMonth[];
+}
+
+export interface MonthlyExpensesResponse {
+  year: number;
+  month: number;
+  currency: 'VND';
+  expenses: CreatedExpense[];
+}

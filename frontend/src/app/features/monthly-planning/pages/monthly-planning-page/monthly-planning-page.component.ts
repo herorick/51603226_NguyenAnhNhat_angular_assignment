@@ -10,15 +10,21 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { finalize, merge } from 'rxjs';
 
 import { BudgetPlanApiService } from '../../../../core/services/budget-plan-api.service';
 import { AppError } from '../../../../models/api-error.models';
 import { DefaultJarsResponse, JarType } from '../../../../models/budget-plan.models';
 import { jarColor } from '../../../../shared/constants/jar-colors';
-import { normalizeVndInput, positiveWholeVndValidator } from '../../../../shared/utils/vnd-amount';
+import { VndAmountInputDirective } from '../../../../shared/directives/vnd-amount-input.directive';
+import { describeVndInput, normalizeVndInput, positiveWholeVndValidator } from '../../../../shared/utils/vnd-amount';
 import { Period, parsePeriod, periodValidator } from '../../utils/period';
+
+const initialPeriod = (route: ActivatedRoute): string => {
+  const fromQuery = route.snapshot.queryParamMap.get('period');
+  return fromQuery !== null && parsePeriod(fromQuery) ? fromQuery : '';
+};
 
 export type DefaultJarsStatus = 'loading' | 'ready' | 'error';
 
@@ -41,7 +47,7 @@ export const CREATE_FAILED_MESSAGE = 'We could not create your plan. Your values
 
 @Component({
   selector: 'app-monthly-planning-page',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, VndAmountInputDirective],
   templateUrl: './monthly-planning-page.component.html',
   styleUrl: './monthly-planning-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -55,7 +61,8 @@ export class MonthlyPlanningPageComponent {
   private readonly incomeInput = viewChild<ElementRef<HTMLInputElement>>('incomeInput');
 
   readonly form = inject(NonNullableFormBuilder).group({
-    period: ['', [Validators.required, periodValidator]],
+    // `?period=YYYY-MM` (from "Create a plan" links on a month without a plan) pre-fills the month.
+    period: [initialPeriod(inject(ActivatedRoute)), [Validators.required, periodValidator]],
     monthlyIncomeVnd: ['', [Validators.required, positiveWholeVndValidator]]
   });
 
@@ -95,6 +102,12 @@ export class MonthlyPlanningPageComponent {
       return INCOME_ERROR_MESSAGE;
     }
     return this.serverIncomeError();
+  });
+
+  /** `≈ 30M VND` reading aid under the income field. */
+  readonly incomeHint = computed(() => {
+    this.formEvents();
+    return describeVndInput(this.form.controls.monthlyIncomeVnd.value);
   });
 
   readonly statusMessage = computed(() => {

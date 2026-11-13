@@ -1,0 +1,121 @@
+<section class="card expenses-panel" aria-labelledby="expenses-title">
+  <h2 id="expenses-title">Expenses this month</h2>
+
+  <!-- Always in the DOM so the result of an edit or delete is announced. -->
+  <p class="expenses-notice" aria-live="polite" aria-atomic="true">{{ notice() }}</p>
+
+  @switch (status()) {
+    @case ('loading') {
+      <p class="muted" aria-busy="true">Loading expenses…</p>
+    }
+    @case ('error') {
+      <div class="expenses-error" role="alert">
+        <p>{{ errorMessage() }}</p>
+        <button type="button" class="btn btn-secondary" (click)="retry()">Try again</button>
+      </div>
+    }
+    @case ('ready') {
+      @if (rows().length === 0) {
+        <p class="muted">No expenses recorded for this month yet.</p>
+      } @else {
+        <ul class="expense-list" role="list">
+          @for (row of rows(); track row.id) {
+            <li class="expense-row" [class.is-editing]="editingId() === row.id" [style.--jar-color]="row.color">
+              @if (editingId() === row.id) {
+                <form
+                  class="edit-form"
+                  [formGroup]="form"
+                  (ngSubmit)="save(row)"
+                  novalidate
+                  [attr.aria-label]="'Edit expense ' + row.description">
+                  <label class="edit-field">
+                    <span>Date</span>
+                    <input
+                      type="date"
+                      formControlName="expenseDate"
+                      [min]="dateMin()"
+                      [max]="dateMax()"
+                      [class.is-invalid]="hasError('expenseDate')"
+                      [attr.aria-invalid]="hasError('expenseDate') ? 'true' : null" />
+                  </label>
+                  <label class="edit-field">
+                    <span>Jar</span>
+                    <select
+                      formControlName="jarType"
+                      [class.is-invalid]="hasError('jarType')"
+                      [attr.aria-invalid]="hasError('jarType') ? 'true' : null">
+                      @for (jar of jarOptions(); track jar.jarType) {
+                        <option [value]="jar.jarType">{{ jar.name }}</option>
+                      }
+                    </select>
+                  </label>
+                  <label class="edit-field">
+                    <span>Amount (VND)</span>
+                    <input
+                      type="text"
+                      inputmode="numeric"
+                      autocomplete="off"
+                      appVndAmountInput
+                      formControlName="amountVnd"
+                      [class.is-invalid]="hasError('amountVnd')"
+                      [attr.aria-invalid]="hasError('amountVnd') ? 'true' : null" />
+                    @if (amountHint()) {
+                      <small class="edit-hint">{{ amountHint() }}</small>
+                    }
+                  </label>
+                  <label class="edit-field edit-field--wide">
+                    <span>Description</span>
+                    <input
+                      type="text"
+                      formControlName="description"
+                      [class.is-invalid]="hasError('description')"
+                      [attr.aria-invalid]="hasError('description') ? 'true' : null" />
+                  </label>
+                  <div class="edit-actions">
+                    <button type="submit" class="btn btn-primary" [disabled]="busyId() !== null">
+                      {{ busyId() === row.id ? 'Saving…' : 'Save' }}
+                    </button>
+                    <button type="button" class="btn btn-secondary" [disabled]="busyId() !== null" (click)="cancelEdit()">
+                      Cancel
+                    </button>
+                  </div>
+                </form>
+              } @else {
+                <span class="expense-day">{{ row.dayLabel }}</span>
+                <span class="expense-main">
+                  <span class="expense-description">{{ row.description }}</span>
+                  <span class="expense-jar"><span class="jar-dot" aria-hidden="true"></span>{{ row.jarName }}</span>
+                </span>
+                <span class="expense-amount">{{ row.amountVnd | vnd }}</span>
+                <span class="expense-actions">
+                  <button
+                    type="button"
+                    class="row-action"
+                    [disabled]="busyId() !== null"
+                    [attr.aria-label]="'Edit ' + row.description"
+                    (click)="startEdit(row)">
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    class="row-action row-action--danger"
+                    [disabled]="busyId() !== null"
+                    [attr.aria-label]="'Delete ' + row.description"
+                    (click)="deleteExpense(row)">
+                    {{ busyId() === row.id ? 'Deleting…' : 'Delete' }}
+                  </button>
+                </span>
+              }
+
+              @if (rowError(); as error) {
+                @if (error.id === row.id) {
+                  <p class="row-error" role="alert">{{ error.message }}</p>
+                }
+              }
+            </li>
+          }
+        </ul>
+      }
+    }
+  }
+</section>

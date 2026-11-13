@@ -1,0 +1,188 @@
+<section class="comparison-content" aria-labelledby="comparison-title">
+  <div class="comparison-heading">
+    <div>
+      <h1 id="comparison-title">Compare months</h1>
+      <p class="comparison-meta">{{ rangeLabel() }} · Amounts in VND</p>
+    </div>
+  </div>
+
+  <div class="card controls" role="group" aria-label="Comparison range">
+    <button type="button" class="btn btn-secondary shift-button" (click)="shift(-1)" aria-label="Earlier months">
+      <span aria-hidden="true">‹</span> Earlier
+    </button>
+
+    <label class="control">
+      <span>Up to</span>
+      <input
+        id="comparison-end"
+        type="month"
+        [value]="endInput()"
+        (change)="onEndChange($any($event.target).value)" />
+    </label>
+
+    <label class="control">
+      <span>Range</span>
+      <select id="comparison-range" (change)="onRangeChange($any($event.target).value)">
+        @for (option of rangeOptions; track option) {
+          <option [value]="option" [selected]="option === query().months">{{ option }} months</option>
+        }
+      </select>
+    </label>
+
+    <label class="control">
+      <span>Jar</span>
+      <select id="comparison-jar" (change)="onJarChange($any($event.target).value)">
+        <option value="" [selected]="query().jar === null">All jars</option>
+        @for (jar of jarOptions(); track jar.jarType) {
+          <option [value]="jar.jarType" [selected]="jar.jarType === query().jar">{{ jar.name }}</option>
+        }
+      </select>
+    </label>
+
+    <button type="button" class="btn btn-secondary shift-button" (click)="shift(1)" aria-label="Later months">
+      Later <span aria-hidden="true">›</span>
+    </button>
+  </div>
+
+  @switch (status()) {
+    @case ('loading') {
+      <div class="card state-panel">
+        <p role="status" aria-live="polite">Loading the comparison…</p>
+      </div>
+    }
+
+    @case ('error') {
+      <div class="card state-panel" role="alert">
+        <p class="state-message">{{ errorMessage() }}</p>
+        <button type="button" class="btn btn-primary" (click)="retry()">Try again</button>
+      </div>
+    }
+
+    @case ('ready') {
+      @if (view(); as v) {
+        @if (!v.hasAnyPlan) {
+          <div class="card state-panel">
+            <p class="state-message">There is no monthly plan in {{ rangeLabel() }}.</p>
+            <a class="btn btn-primary action-link" routerLink="/monthly-planning">Create a plan</a>
+          </div>
+        } @else {
+          <dl class="summary">
+            <div class="card summary-card">
+              <dt>Total spent</dt>
+              <dd>{{ v.summary.totalSpentText }}</dd>
+            </div>
+            <div class="card summary-card">
+              <dt>Average per month</dt>
+              <dd>{{ v.summary.averageSpentText }}</dd>
+              <span class="summary-note">
+                {{ v.summary.plannedMonthCount }} {{ v.summary.plannedMonthCount === 1 ? 'month' : 'months' }} with a plan
+              </span>
+            </div>
+            <div class="card summary-card">
+              <dt>Highest month</dt>
+              <dd>{{ v.summary.highestMonthLabel }}</dd>
+              <span class="summary-note">{{ v.summary.highestMonthText }}</span>
+            </div>
+          </dl>
+
+          <figure class="card chart-card">
+            <figcaption class="chart-caption">
+              <h2>Spending by month</h2>
+              <ul class="legend" aria-label="Legend">
+                @for (item of v.legend; track item.jarType) {
+                  <li><span class="swatch" [style.background]="item.color" aria-hidden="true"></span>{{ item.name }}</li>
+                }
+                <li><span class="swatch swatch--budget" aria-hidden="true"></span>{{ v.budgetLegend }}</li>
+              </ul>
+            </figcaption>
+
+            <!-- Visual only: the table below carries the same numbers for screen readers. -->
+            <div class="chart" aria-hidden="true">
+              <div class="axis">
+                @for (tick of v.ticks; track tick.bottomPct) {
+                  <span class="tick" [style.bottom.%]="tick.bottomPct">{{ tick.label }}</span>
+                }
+              </div>
+              <div class="plot">
+                <div class="grid">
+                  @for (tick of v.ticks; track tick.bottomPct) {
+                    <span class="gridline" [style.bottom.%]="tick.bottomPct"></span>
+                  }
+                </div>
+                @for (column of v.columns; track column.key) {
+                  <div class="column" [class.column--empty]="!column.hasPlan" [attr.title]="column.title">
+                    <div class="bar-area">
+                      @if (column.hasPlan) {
+                        <span class="budget-outline" [style.height.%]="column.budgetPct"></span>
+                        <div class="stack" [class.stack--over]="column.overBudget">
+                          @for (segment of column.segments; track segment.jarType) {
+                            <span
+                              class="segment"
+                              [style.height.%]="segment.heightPct"
+                              [style.background]="segment.color"
+                              [attr.title]="segment.title"></span>
+                          }
+                        </div>
+                        <span
+                          class="spent-label"
+                          [class.spent-label--over]="column.overBudget"
+                          [style.bottom.%]="column.spentPct">
+                          {{ column.spentLabel }}
+                        </span>
+                      } @else {
+                        <span class="no-plan">No plan</span>
+                      }
+                    </div>
+                    <span class="column-label">{{ column.label }}</span>
+                    <span class="column-year">{{ column.yearLabel ?? '' }}</span>
+                  </div>
+                }
+              </div>
+            </div>
+          </figure>
+
+          <div class="card table-card">
+            <h2 id="comparison-table-title">Spent per jar</h2>
+            <div class="table-scroll" role="region" aria-labelledby="comparison-table-title" tabindex="0">
+              <table>
+                <caption class="sr-only">
+                  Spent per jar for {{ rangeLabel() }}, in VND, with the share of the budget used
+                </caption>
+                <thead>
+                  <tr>
+                    <th scope="col">Jar</th>
+                    @for (header of v.tableHeaders; track header.key) {
+                      <th scope="col">{{ header.label }}</th>
+                    }
+                    <th scope="col">Last vs previous</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of v.tableRows; track row.key) {
+                    <tr [class.total-row]="row.key === 'total'">
+                      <th scope="row">
+                        @if (row.color) {
+                          <span class="swatch" [style.background]="row.color" aria-hidden="true"></span>
+                        }
+                        {{ row.name }}
+                      </th>
+                      @for (cell of row.cells; track $index) {
+                        <td [class.cell--empty]="!cell.hasPlan" [class.cell--over]="cell.overBudget">
+                          <span class="cell-amount">{{ cell.text }}</span>
+                          @if (cell.percentText) {
+                            <span class="cell-percent">{{ cell.percentText }}</span>
+                          }
+                        </td>
+                      }
+                      <td class="change change--{{ row.changeDirection }}">{{ row.changeText }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
+        }
+      }
+    }
+  }
+</section>

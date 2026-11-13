@@ -1,14 +1,22 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Observable, Subject, catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
+import { Observable, Subject, catchError, map, of, startWith, switchMap } from 'rxjs';
 
 import { BudgetPlanApiService } from '../../../../core/services/budget-plan-api.service';
 import { AppError } from '../../../../models/api-error.models';
 import { JarType, SpendingByJar, SpendingByJarsResponse } from '../../../../models/budget-plan.models';
 import { jarColor } from '../../../../shared/constants/jar-colors';
+import { MonthSwitcherComponent } from '../../../../shared/components/month-switcher/month-switcher.component';
 import { formatVnd } from '../../../../shared/pipes/vnd.pipe';
-import { Period, firstDayOfPeriod, formatPeriodLabel, parseRoutePeriod } from '../../../monthly-planning/utils/period';
+import {
+  Period,
+  firstDayOfPeriod,
+  formatPeriodInput,
+  formatPeriodLabel,
+  parseRoutePeriod
+} from '../../../monthly-planning/utils/period';
+import { MonthExpensesComponent } from '../../components/month-expenses/month-expenses.component';
 import { EXPECTED_JAR_COUNT, isValidSpendingByJars } from '../../utils/spending-shape';
 
 export type SpendingByJarStatus = 'loading' | 'ready' | 'not-found' | 'error' | 'invalid-period';
@@ -48,7 +56,7 @@ const PERCENT_FORMAT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2
 
 @Component({
   selector: 'app-spending-by-jar-page',
-  imports: [RouterLink],
+  imports: [MonthExpensesComponent, MonthSwitcherComponent, RouterLink],
   templateUrl: './spending-by-jar-page.component.html',
   styleUrl: './spending-by-jar-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -56,7 +64,8 @@ const PERCENT_FORMAT = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2
 export class SpendingByJarPageComponent {
   private readonly api = inject(BudgetPlanApiService);
   private readonly route = inject(ActivatedRoute);
-  private readonly reloads = new Subject<void>();
+  /** `true` = quiet reload after an expense edit: the jar rows stay on screen until the fresh totals arrive. */
+  private readonly reloads = new Subject<boolean>();
 
   readonly view = signal<SpendingByJarView>({ status: 'loading', period: null });
 
@@ -83,6 +92,12 @@ export class SpendingByJarPageComponent {
     return period ? { expenseDate: firstDayOfPeriod(period) } : {};
   });
 
+  /** Pre-fills the month on the create-plan page from a month that has no plan yet. */
+  readonly createPlanQueryParams = computed(() => {
+    const period = this.period();
+    return period ? { period: formatPeriodInput(period) } : {};
+  });
+
   /** Rows in the order the API returned them. No sorting, and no percentage or total is computed here. */
   readonly rows = computed<SpendingRow[]>(() => {
     const view = this.view();
@@ -96,9 +111,15 @@ export class SpendingByJarPageComponent {
     // `switchMap` drops the in-flight GET when the route params change or the user retries, so a stale response
     // can never overwrite a newer one. The router reuses this page when only `:year/:month` changes.
     // The page is also re-created on every navigation, so each visit refetches and shows fresh expenses.
-    combineLatest([this.route.paramMap, this.reloads.pipe(startWith(undefined))])
+    this.route.paramMap
       .pipe(
-        switchMap(([params]) => this.load(parseRoutePeriod(params.get('year'), params.get('month')))),
+        switchMap((params) => {
+          const period = parseRoutePeriod(params.get('year'), params.get('month'));
+          return this.reloads.pipe(
+            startWith(false),
+            switchMap((quiet) => this.load(period, quiet))
+          );
+        }),
         takeUntilDestroyed()
       )
       .subscribe((view) => this.view.set(view));
@@ -106,23 +127,28 @@ export class SpendingByJarPageComponent {
 
   /** Re-runs the GET for the current route params. Only offered from the error state; `switchMap` cancels a duplicate. */
   retry(): void {
-    this.reloads.next();
+    this.reloads.next(false);
   }
 
-  private load(period: Period | null): Observable<SpendingByJarView> {
+  /** After an expense is edited or deleted: refetch the jar totals without dropping back to the loading state. */
+  refreshTotals(): void {
+    this.reloads.next(true);
+  }
+
+  private load(period: Period | null, quiet = false): Observable<SpendingByJarView> {
     if (!period) {
       return of<SpendingByJarView>({ status: 'invalid-period' });
     }
-    return this.api.getSpendingByJars(period.year, period.month).pipe(
+    const request = this.api.getSpendingByJars(period.year, period.month).pipe(
       map((spending): SpendingByJarView =>
         // The page labels the data from the route, so a body for another month must not render under this one.
         isValidSpendingByJars(spending) && spending.year === period.year && spending.month === period.month
           ? { status: 'ready', period, spending }
           : { status: 'error', period, message: INTEGRITY_ERROR_MESSAGE }
       ),
-      catchError((error: AppError) => of(this.toFailureView(period, error))),
-      startWith<SpendingByJarView>({ status: 'loading', period })
+      catchError((error: AppError) => of(this.toFailureView(period, error)))
     );
+    return quiet ? request : request.pipe(startWith<SpendingByJarView>({ status: 'loading', period }));
   }
 
   private toFailureView(period: Period, error: AppError): SpendingByJarView {

@@ -1,0 +1,131 @@
+<section class="months-content" aria-labelledby="months-title">
+  <div class="months-heading">
+    <div>
+      <h1 id="months-title">All months</h1>
+      <p class="months-meta">Every monthly plan with its income, spending and what is left · Amounts in VND</p>
+    </div>
+    <a class="btn btn-primary action-link" routerLink="/monthly-planning">Create monthly plan</a>
+  </div>
+
+  @if (notice(); as n) {
+    <div class="card delete-notice" [class.delete-notice--error]="n.kind === 'error'" [attr.role]="n.kind === 'error' ? 'alert' : 'status'">
+      <p>{{ n.message }}</p>
+      @if (n.setupQueryParams) {
+        <a class="btn btn-primary action-link" routerLink="/monthly-planning" [queryParams]="n.setupQueryParams">
+          Set up {{ n.setupLabel }} again
+        </a>
+      }
+    </div>
+  }
+
+  @if (currentMonthMissing()) {
+    <div class="card current-missing" role="status">
+      <p>There is no plan for {{ currentMonthLabel }} yet.</p>
+      <a class="btn btn-secondary action-link" routerLink="/monthly-planning" [queryParams]="createCurrentQueryParams">
+        Plan {{ currentMonthLabel }}
+      </a>
+    </div>
+  }
+
+  @switch (status()) {
+    @case ('loading') {
+      <p class="loading-message" role="status" aria-live="polite">Loading your monthly plans…</p>
+    }
+
+    @case ('error') {
+      <div class="card state-panel" role="alert">
+        <div class="state-icon" aria-hidden="true">!</div>
+        <p class="state-message">{{ errorMessage() }}</p>
+        <button type="button" class="btn btn-primary action-link" (click)="retry()">Try again</button>
+      </div>
+    }
+
+    @case ('ready') {
+      @if (groups().length === 0) {
+        <div class="card state-panel">
+          <p class="state-message">You have not created any monthly plan yet.</p>
+          <a class="btn btn-primary action-link" routerLink="/monthly-planning">Create your first plan</a>
+        </div>
+      } @else {
+        @for (group of groups(); track group.year) {
+          <section class="year-group" [attr.aria-labelledby]="'year-' + group.year">
+            <h2 class="year-title" [id]="'year-' + group.year">{{ group.year }}</h2>
+            <ul class="month-grid" role="list">
+              @for (card of group.months; track card.key) {
+                <li class="card month-card" [class.month-card--over]="card.overBudget" [class.month-card--current]="card.isCurrent">
+                  <div class="month-card-heading">
+                    <h3 class="month-name">
+                      <a [routerLink]="['/monthly-plans', card.period.year, card.period.month]">{{ card.label }}</a>
+                    </h3>
+                    @if (card.isCurrent) {
+                      <span class="badge-current">This month</span>
+                    }
+                  </div>
+
+                  <dl class="month-facts">
+                    <div>
+                      <dt>Income</dt>
+                      <dd>{{ card.incomeText }}</dd>
+                    </div>
+                    <div>
+                      <dt>Spent</dt>
+                      <dd>{{ card.spentText }}</dd>
+                    </div>
+                    <div class="fact-remaining">
+                      <dt>Remaining</dt>
+                      <dd>{{ card.remainingText }}</dd>
+                    </div>
+                  </dl>
+
+                  <div
+                    class="progress"
+                    role="progressbar"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    [attr.aria-valuenow]="card.barWidth"
+                    [attr.aria-valuetext]="card.percentLabel + ' of income spent' + (card.overBudget ? ', over budget' : '')"
+                    [attr.aria-label]="card.label + ' spending'">
+                    <span class="progress-fill" [style.width.%]="card.barWidth"></span>
+                  </div>
+                  <p class="month-usage">
+                    <span>{{ card.percentLabel }} used · {{ card.expenseCountText }}</span>
+                    @if (card.overBudget) {
+                      <span class="over-badge">Over budget</span>
+                    }
+                  </p>
+
+                  <div class="month-actions">
+                    <a class="btn btn-secondary action-link" [routerLink]="['/monthly-plans', card.period.year, card.period.month]">
+                      Plan
+                    </a>
+                    <a
+                      class="btn btn-secondary action-link"
+                      [routerLink]="['/monthly-plans', card.period.year, card.period.month, 'spending']">
+                      Spending
+                    </a>
+                    <a class="btn btn-primary action-link" routerLink="/expenses/new" [queryParams]="card.addExpenseQueryParams">
+                      Add expense
+                    </a>
+                    <button
+                      type="button"
+                      class="btn btn-secondary action-link delete-button"
+                      [disabled]="deletingKey() !== null"
+                      [attr.aria-busy]="deletingKey() === card.key"
+                      [attr.aria-label]="'Delete ' + card.label + ' plan'"
+                      (click)="deleteMonth(card)">
+                      @if (deletingKey() === card.key) {
+                        Deleting…
+                      } @else {
+                        Delete
+                      }
+                    </button>
+                  </div>
+                </li>
+              }
+            </ul>
+          </section>
+        }
+      }
+    }
+  }
+</section>

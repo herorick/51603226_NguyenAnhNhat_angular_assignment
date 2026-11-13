@@ -1,7 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -43,6 +43,9 @@ const AMOUNT_ZERO = 'Amount must be greater than zero.';
 const DESCRIPTION_REQUIRED = 'Description is required.';
 const DESCRIPTION_TOO_LONG = 'Description must be 500 characters or fewer.';
 const PLACEHOLDER = 'Select a jar';
+const AMOUNT_HINT_ID = 'expense-amount-hint';
+const AMOUNT_HINT_DEFAULT = 'Whole VND, separators are added as you type.';
+const SAVED_MESSAGE = 'Expense saved: 1,250,000 VND to Food. View spending';
 
 const EXPECTED_BODY = {
   expenseDate: '2026-09-15',
@@ -290,9 +293,13 @@ const expectLinkedError = (page: Page, control: HTMLElement, errorId: string, me
   expect(text(error)).toBe(message);
 };
 
-const expectNoError = (page: Page, control: HTMLElement, errorId: string): void => {
+/** `hintId`: the hint the control points at while it has no error (the amount field always has one). */
+const expectNoError = (page: Page, control: HTMLElement, errorId: string, hintId: string | null = null): void => {
   expect(control.hasAttribute('aria-invalid')).toBe(false);
-  expect(control.hasAttribute('aria-describedby')).toBe(false);
+  expect(control.getAttribute('aria-describedby')).toBe(hintId);
+  if (hintId !== null) {
+    expect(page.root.querySelector(`#${hintId}`)).not.toBeNull();
+  }
   expect(page.root.querySelector(`#${errorId}`)).toBeNull();
 };
 
@@ -303,12 +310,13 @@ const expectNoJars = (page: Page): void => {
   expect(jarSelect(page).value).toBe('');
 };
 
-const expectMissingPlanState = (page: Page, periodLabel: string): void => {
+/** `period` (`YYYY-MM`) is passed on to the create-plan page so it opens with that month selected. */
+const expectMissingPlanState = (page: Page, periodLabel: string, period: string): void => {
   const alerts = alertTexts(page);
   expect(alerts).toHaveLength(1);
   expect(alerts[0]).toContain(NOT_FOUND_TITLE);
   expect(alerts[0]).toContain(`There is no monthly plan for ${periodLabel} yet.`);
-  expect(link(page, 'Create a plan').getAttribute('href')).toBe('/monthly-planning');
+  expect(link(page, 'Create a plan').getAttribute('href')).toBe(`/monthly-planning?period=${period}`);
   expectNoJars(page);
 };
 
@@ -325,8 +333,9 @@ describe('AddExpensePageComponent', () => {
       providers: [
         provideRouter([
           { path: 'expenses/new', component: AddExpensePageComponent },
-          { path: 'dashboard', children: [] },
-          { path: 'monthly-planning', children: [] }
+          { path: 'monthly-planning', children: [] },
+          { path: 'monthly-plans', children: [] },
+          { path: 'monthly-plans/:year/:month/spending', children: [] }
         ]),
         provideHttpClient(),
         provideHttpClientTesting()
@@ -457,11 +466,34 @@ describe('AddExpensePageComponent', () => {
       expect(facts(page, '.summary-panel .jar-summary')).toEqual({ Rate: '10%', 'Plan budget': '2,500,000 VND' });
     });
 
-    it('has a title and a back link to the dashboard', async () => {
+    it('has a title and a back link to the spending of the selected month', async () => {
       const page = await readyPage();
 
       expect(text(el(page.root, 'h1'))).toBe('Add an expense');
-      expect(link(page, 'Back to expenses').getAttribute('href')).toBe('/dashboard');
+      const back = el<HTMLAnchorElement>(page.root, 'a.back-link');
+      expect(text(back)).toBe('‹ Back to September 2026 spending');
+      expect(back.getAttribute('href')).toBe('/monthly-plans/2026/9/spending');
+    });
+
+    it('points the back link at the month the date moves to', async () => {
+      const page = await readyPage();
+
+      enterDate(page, '2026-10-05');
+
+      const back = el<HTMLAnchorElement>(page.root, 'a.back-link');
+      expect(text(back)).toBe('‹ Back to October 2026 spending');
+      expect(back.getAttribute('href')).toBe('/monthly-plans/2026/10/spending');
+      flushOk(page, OCTOBER_PLAN_FIXTURE, OCTOBER);
+    });
+
+    it('points the back link at all months when no valid date is selected', async () => {
+      const page = await readyPage();
+
+      enter(page, dateInput(page), '');
+
+      const back = el<HTMLAnchorElement>(page.root, 'a.back-link');
+      expect(text(back)).toBe('‹ Back to all months');
+      expect(back.getAttribute('href')).toBe('/monthly-plans');
     });
   });
 
@@ -594,7 +626,7 @@ describe('AddExpensePageComponent', () => {
     it('keeps the jarType through a missing plan and uses the budgets of the month that finally loads', async () => {
       const page = await createPage('/expenses/new?jarType=savings');
       flushFailure(page, SEPTEMBER, 404, 'Not Found', NOT_FOUND_ERROR_FIXTURE);
-      expectMissingPlanState(page, 'September 2026');
+      expectMissingPlanState(page, 'September 2026', '2026-09');
 
       enterDate(page, '2026-10-05');
       flushOk(page, OCTOBER_PLAN_FIXTURE, OCTOBER);
@@ -762,7 +794,7 @@ describe('AddExpensePageComponent', () => {
       enterDate(page, '2026-10-05');
       flushFailure(page, OCTOBER, 404, 'Not Found', NOT_FOUND_ERROR_FIXTURE);
 
-      expectMissingPlanState(page, 'October 2026');
+      expectMissingPlanState(page, 'October 2026', '2026-10');
       expect(selectedJarName(page)).toBe(PLACEHOLDER);
 
       enterDate(page, '2026-11-02');
@@ -795,7 +827,7 @@ describe('AddExpensePageComponent', () => {
     it('recovers when the date moves from a month without a plan to a month with one', async () => {
       const page = await createPage();
       flushFailure(page, SEPTEMBER, 404, 'Not Found', NOT_FOUND_ERROR_FIXTURE);
-      expectMissingPlanState(page, 'September 2026');
+      expectMissingPlanState(page, 'September 2026', '2026-09');
 
       enterDate(page, '2026-10-05');
       expect(alertTexts(page)).toEqual([]);
@@ -932,7 +964,7 @@ describe('AddExpensePageComponent', () => {
 
       flushCreated(page);
 
-      expect(saveResult(page)).toBe('Expense saved: 1,250,000 VND to Food.');
+      expect(saveResult(page)).toBe(SAVED_MESSAGE);
       expect(saveButton(page).disabled).toBe(false);
     });
 
@@ -1009,9 +1041,9 @@ describe('AddExpensePageComponent', () => {
 
       expect(amountInput(page).value).toBe('300,000');
       expect(descriptionInput(page).value).toBe('');
-      expect(saveResult(page)).toBe('Expense saved: 1,250,000 VND to Food.');
+      expect(saveResult(page)).toBe(SAVED_MESSAGE);
       expect(alertTexts(page)).toEqual([]);
-      expectNoError(page, amountInput(page), 'expense-amount-error');
+      expectNoError(page, amountInput(page), 'expense-amount-error', AMOUNT_HINT_ID);
     });
 
     it('keeps a description typed during the save and still clears the unchanged amount', async () => {
@@ -1022,7 +1054,7 @@ describe('AddExpensePageComponent', () => {
 
       expect(descriptionInput(page).value).toBe('Snacks');
       expect(amountInput(page).value).toBe('');
-      expect(saveResult(page)).toBe('Expense saved: 1,250,000 VND to Food.');
+      expect(saveResult(page)).toBe(SAVED_MESSAGE);
       expect(alertTexts(page)).toEqual([]);
     });
 
@@ -1080,13 +1112,24 @@ describe('AddExpensePageComponent', () => {
       expect(amountInput(page).value).toBe('');
     });
 
+    // Typed text is reformatted first, so "0" is the invalid value that survives formatting unchanged.
     it('keeps an amount that was edited into another value during the save, even if that value is invalid', async () => {
+      const page = await savePending();
+
+      enter(page, amountInput(page), '0');
+      flushCreated(page);
+
+      expect(amountInput(page).value).toBe('0');
+      expect(descriptionInput(page).value).toBe('');
+    });
+
+    it('keeps an amount whose digits differ from the saved value once reformatted', async () => {
       const page = await savePending();
 
       enter(page, amountInput(page), '1,25');
       flushCreated(page);
 
-      expect(amountInput(page).value).toBe('1,25');
+      expect(amountInput(page).value).toBe('125');
       expect(descriptionInput(page).value).toBe('');
     });
 
@@ -1109,7 +1152,7 @@ describe('AddExpensePageComponent', () => {
 
       flushFailure(page, SEPTEMBER, 404, 'Not Found', NOT_FOUND_ERROR_FIXTURE);
 
-      expectMissingPlanState(page, 'September 2026');
+      expectMissingPlanState(page, 'September 2026', '2026-09');
       expect(alertTexts(page)[0]).not.toContain('Try again');
       expect(loadingHint(page)).toBe('');
     });
@@ -1218,7 +1261,7 @@ describe('AddExpensePageComponent', () => {
       render(page);
       flushFailure(page, SEPTEMBER, 404, 'Not Found', NOT_FOUND_ERROR_FIXTURE);
 
-      expectMissingPlanState(page, 'September 2026');
+      expectMissingPlanState(page, 'September 2026', '2026-09');
     });
 
     it('does not POST when Save is pressed after a failed load', async () => {
@@ -1329,7 +1372,7 @@ describe('AddExpensePageComponent', () => {
 
       expect(alertTexts(page)).toEqual([]);
       expectNoError(page, jarSelect(page), 'expense-jar-error');
-      expectNoError(page, amountInput(page), 'expense-amount-error');
+      expectNoError(page, amountInput(page), 'expense-amount-error', AMOUNT_HINT_ID);
       expectNoError(page, descriptionInput(page), 'expense-description-error');
       expectNoError(page, dateInput(page), 'expense-date-error');
     });
@@ -1399,14 +1442,18 @@ describe('AddExpensePageComponent', () => {
     it('shows a field error as soon as the field is left, without a submit', async () => {
       const page = await readyPage();
 
-      enter(page, amountInput(page), '12.5');
+      // Typed "abc" is stripped by the formatter, leaving the field empty.
+      enter(page, amountInput(page), 'abc');
+      expect(amountInput(page).value).toBe('');
       expect(alertTexts(page)).toEqual([]);
       blur(page, amountInput(page));
 
       expectLinkedError(page, amountInput(page), 'expense-amount-error', AMOUNT_ERROR);
+      expect(page.root.querySelector(`#${AMOUNT_HINT_ID}`)).toBeNull();
       expect(statusSummary(page)).toBe('');
     });
 
+    // Typed text is reformatted first (digits only, no leading zeros), so every zero amount ends up as "0".
     it.each(['0', '000', '0,000', '  0  '])(
       'rejects the zero amount %j with the greater-than-zero message',
       async (amount) => {
@@ -1421,17 +1468,40 @@ describe('AddExpensePageComponent', () => {
         expect(alertTexts(page)).toEqual([AMOUNT_ZERO]);
         expectLinkedError(page, amountInput(page), 'expense-amount-error', AMOUNT_ZERO);
         expect(document.activeElement).toBe(amountInput(page));
-        expect(amountInput(page).value).toBe(amount);
+        expect(amountInput(page).value).toBe('0');
       }
     );
 
-    it.each(['12.5', '1.5', 'abc', '1,5', '1,00', '-5', '1e3', '٣٠٠', '12 500', '', '   ', '9223372036854775808'])(
-      'rejects the amount %j with the whole-VND message',
+    it.each([
+      ['abc', ''],
+      ['٣٠٠', ''],
+      ['', ''],
+      ['   ', ''],
+      ['9223372036854775808', '9,223,372,036,854,775,808']
+    ])('rejects the typed amount %j (shown as %j) with the whole-VND message', async (amount, shown) => {
+      const page = await readyPage();
+      choose(page, 'food');
+      enter(page, descriptionInput(page), 'Weekly groceries');
+      enter(page, amountInput(page), amount);
+
+      save(page);
+
+      expect(pending(page)).toEqual([]);
+      expect(alertTexts(page)).toEqual([AMOUNT_ERROR]);
+      expectLinkedError(page, amountInput(page), 'expense-amount-error', AMOUNT_ERROR);
+      expect(document.activeElement).toBe(amountInput(page));
+      expect(amountInput(page).value).toBe(shown);
+    });
+
+    // Bypasses the input formatting so the validator itself is exercised against malformed text.
+    it.each(['12.5', '1.5', 'abc', '1,5', '1,00', '-5', '1e3', '٣٠٠', '12 500', '   ', '9223372036854775808'])(
+      'rejects the amount %j with the whole-VND message when it reaches the form control unchanged',
       async (amount) => {
         const page = await readyPage();
         choose(page, 'food');
         enter(page, descriptionInput(page), 'Weekly groceries');
-        enter(page, amountInput(page), amount);
+        page.component.form.controls.amountVnd.setValue(amount);
+        render(page);
 
         save(page);
 
@@ -1443,11 +1513,30 @@ describe('AddExpensePageComponent', () => {
       }
     );
 
+    it.each<[string, string, string]>([
+      ['12.5', '125', '125'],
+      ['1,5', '15', '15'],
+      ['1,00', '100', '100'],
+      ['-5', '5', '5'],
+      ['1e3', '13', '13'],
+      ['12 500', '12,500', '12500'],
+      ['1.250.000', '1,250,000', '1250000']
+    ])('strips non-digits from the typed amount %j, shows %j and sends %j', async (amount, shown, digits) => {
+      const page = await readyPage();
+      fillValid(page, amount);
+
+      expect(amountInput(page).value).toBe(shown);
+      expect(page.component.form.controls.amountVnd.value).toBe(shown);
+      save(page);
+
+      expect(postRequest(page).request.body).toEqual({ ...EXPECTED_BODY, amountVnd: digits });
+    });
+
     it('accepts the smallest positive whole-VND amount and sends it as the string "1" (TC_F3_003)', async () => {
       const page = await readyPage();
       fillValid(page, '1');
 
-      expectNoError(page, amountInput(page), 'expense-amount-error');
+      expectNoError(page, amountInput(page), 'expense-amount-error', AMOUNT_HINT_ID);
       save(page);
 
       expect(postRequest(page).request.body).toEqual({ ...EXPECTED_BODY, amountVnd: '1' });
@@ -1465,6 +1554,44 @@ describe('AddExpensePageComponent', () => {
       save(page);
 
       expect(postRequest(page).request.body).toStrictEqual({ ...EXPECTED_BODY, amountVnd: digits });
+    });
+
+    it('groups a typed amount with commas in the field and the form control', async () => {
+      const page = await readyPage();
+
+      enter(page, amountInput(page), '1250000');
+
+      expect(amountInput(page).value).toBe('1,250,000');
+      expect(page.component.form.controls.amountVnd.value).toBe('1,250,000');
+    });
+
+    it('shows the default hint, then a compact reading aid for amounts of at least 1,000', async () => {
+      const page = await readyPage();
+      const hint = (): string => text(el(page.root, `#${AMOUNT_HINT_ID}`));
+
+      expect(hint()).toBe(AMOUNT_HINT_DEFAULT);
+      expect(el(page.root, `#${AMOUNT_HINT_ID}`).classList.contains('field-hint')).toBe(true);
+      expect(amountInput(page).getAttribute('aria-describedby')).toBe(AMOUNT_HINT_ID);
+
+      enter(page, amountInput(page), '1250000');
+      expect(hint()).toBe('≈ 1.25M VND');
+
+      enter(page, amountInput(page), '999');
+      expect(hint()).toBe(AMOUNT_HINT_DEFAULT);
+    });
+
+    it('swaps the hint for the error and back, moving aria-describedby with it', async () => {
+      const page = await readyPage();
+      enter(page, amountInput(page), '0');
+      blur(page, amountInput(page));
+
+      expectLinkedError(page, amountInput(page), 'expense-amount-error', AMOUNT_ZERO);
+      expect(page.root.querySelector(`#${AMOUNT_HINT_ID}`)).toBeNull();
+
+      enter(page, amountInput(page), '5000');
+
+      expectNoError(page, amountInput(page), 'expense-amount-error', AMOUNT_HINT_ID);
+      expect(text(el(page.root, `#${AMOUNT_HINT_ID}`))).toBe('≈ 5K VND');
     });
 
     it.each(['', ' ', '     ', '\t', ' \t '])('rejects the blank description %j as required', async (description) => {
@@ -1584,8 +1711,22 @@ describe('AddExpensePageComponent', () => {
 
       flushCreated(page);
 
-      expect(saveResult(page)).toBe('Expense saved: 1,250,000 VND to Food.');
+      expect(saveResult(page)).toBe(SAVED_MESSAGE);
       expect(el(page.root, '.save-result').getAttribute('role')).toBe('status');
+    });
+
+    it('links the saved message to the spending page of the month', async () => {
+      const page = await savePending();
+      flushCreated(page);
+
+      const view = el<HTMLAnchorElement>(page.root, '.save-result a');
+      expect(text(view)).toBe('View spending');
+      expect(view.getAttribute('href')).toBe('/monthly-plans/2026/9/spending');
+
+      view.click();
+      await page.harness.fixture.whenStable();
+
+      expect(TestBed.inject(Router).url).toBe('/monthly-plans/2026/9/spending');
     });
 
     it('shows the backend budget, spent and remaining of the jar, formatted as VND', async () => {
@@ -1666,7 +1807,7 @@ describe('AddExpensePageComponent', () => {
 
       expect(alertTexts(page)).toEqual([]);
       expect(statusSummary(page)).toBe('');
-      expectNoError(page, amountInput(page), 'expense-amount-error');
+      expectNoError(page, amountInput(page), 'expense-amount-error', AMOUNT_HINT_ID);
       expectNoError(page, descriptionInput(page), 'expense-description-error');
     });
 
@@ -2215,7 +2356,7 @@ describe('AddExpensePageComponent', () => {
           flushPostFailure(page, status, statusText, body);
 
           expect(alertTexts(page)).toEqual([SAVE_FAILED]);
-          expectNoError(page, amountInput(page), 'expense-amount-error');
+          expectNoError(page, amountInput(page), 'expense-amount-error', AMOUNT_HINT_ID);
           expectNoError(page, descriptionInput(page), 'expense-description-error');
           expectNoError(page, jarSelect(page), 'expense-jar-error');
           expect(pageText(page)).not.toContain(NOT_FOUND_TITLE);
@@ -2267,7 +2408,7 @@ describe('AddExpensePageComponent', () => {
 
       flushPostFailure(page, 404, 'Not Found', NOT_FOUND_ERROR_FIXTURE);
 
-      expectMissingPlanState(page, 'September 2026');
+      expectMissingPlanState(page, 'September 2026', '2026-09');
     });
   });
 
@@ -2309,7 +2450,7 @@ describe('AddExpensePageComponent', () => {
 
         enter(page, amountInput(page), '1,250,001');
 
-        expectNoError(page, amountInput(page), 'expense-amount-error');
+        expectNoError(page, amountInput(page), 'expense-amount-error', AMOUNT_HINT_ID);
         expectLinkedError(page, descriptionInput(page), 'expense-description-error', DESCRIPTION_TOO_LONG);
         expect(alertTexts(page)).toEqual([DESCRIPTION_TOO_LONG]);
 
@@ -2351,7 +2492,7 @@ describe('AddExpensePageComponent', () => {
 
         expect(alertTexts(page)).toEqual([UNKNOWN_FIELD_ERROR.message]);
         expect(pageText(page)).not.toContain('Year is out of range.');
-        expectNoError(page, amountInput(page), 'expense-amount-error');
+        expectNoError(page, amountInput(page), 'expense-amount-error', AMOUNT_HINT_ID);
         expectNoError(page, descriptionInput(page), 'expense-description-error');
         expectValuesKept(page);
       });
@@ -2484,7 +2625,7 @@ describe('AddExpensePageComponent', () => {
 
         flushPostFailure(page, 404, 'Not Found', NOT_FOUND_ERROR_FIXTURE);
 
-        expectMissingPlanState(page, 'September 2026');
+        expectMissingPlanState(page, 'September 2026', '2026-09');
         expect(dateInput(page).value).toBe('2026-09-15');
         expect(amountInput(page).value).toBe('1,250,000');
         expect(descriptionInput(page).value).toBe('Weekly groceries');
@@ -2670,7 +2811,7 @@ describe('AddExpensePageComponent', () => {
         flushCreated(page);
 
         expect(alertTexts(page)).toEqual([]);
-        expect(saveResult(page)).toBe('Expense saved: 1,250,000 VND to Food.');
+        expect(saveResult(page)).toBe(SAVED_MESSAGE);
         expect(amountInput(page).value).toBe('');
       });
     });

@@ -1,15 +1,33 @@
 import { DecimalPipe } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
-import { Observable, Subject, catchError, combineLatest, map, of, startWith, switchMap } from 'rxjs';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import {
+  Observable,
+  Subject,
+  Subscription,
+  catchError,
+  combineLatest,
+  map,
+  of,
+  startWith,
+  switchMap,
+  tap
+} from 'rxjs';
 
 import { BudgetPlanApiService } from '../../../../core/services/budget-plan-api.service';
 import { AppError } from '../../../../models/api-error.models';
 import { JarType, MonthlyPlanResponse } from '../../../../models/budget-plan.models';
 import { jarColor } from '../../../../shared/constants/jar-colors';
+import { MonthSwitcherComponent } from '../../../../shared/components/month-switcher/month-switcher.component';
 import { VndPipe } from '../../../../shared/pipes/vnd.pipe';
-import { Period, firstDayOfPeriod, formatPeriodLabel, parseRoutePeriod } from '../../utils/period';
+import {
+  Period,
+  firstDayOfPeriod,
+  formatPeriodInput,
+  formatPeriodLabel,
+  parseRoutePeriod
+} from '../../utils/period';
 import { isValidMonthlyPlan } from '../../utils/plan-shape';
 
 export type MonthlyPlanStatus = 'loading' | 'ready' | 'not-found' | 'error' | 'invalid-period';
@@ -34,10 +52,11 @@ export const PLAN_NOT_FOUND_CODE = 'MONTHLY_PLAN_NOT_FOUND';
 export const VALIDATION_ERROR_CODE = 'VALIDATION_ERROR';
 export const LOAD_FAILED_MESSAGE = 'We could not load this monthly plan. Please try again.';
 export const INTEGRITY_ERROR_MESSAGE = 'The monthly plan data is incomplete or invalid. Please try again.';
+export const DELETE_FAILED_MESSAGE = 'We could not delete this plan. Please try again.';
 
 @Component({
   selector: 'app-monthly-plan-page',
-  imports: [DecimalPipe, RouterLink, VndPipe],
+  imports: [DecimalPipe, MonthSwitcherComponent, RouterLink, VndPipe],
   templateUrl: './monthly-plan-page.component.html',
   styleUrl: './monthly-plan-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -46,8 +65,13 @@ export class MonthlyPlanPageComponent {
   private readonly api = inject(BudgetPlanApiService);
   private readonly route = inject(ActivatedRoute);
   private readonly reloads = new Subject<void>();
+  private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly view = signal<MonthlyPlanView>({ status: 'loading', period: null });
+  readonly deleting = signal(false);
+  readonly deleteError = signal<string | null>(null);
+  private deleteSubscription: Subscription | null = null;
 
   readonly status = computed<MonthlyPlanStatus>(() => this.view().status);
 
@@ -77,6 +101,12 @@ export class MonthlyPlanPageComponent {
     return period ? { expenseDate: firstDayOfPeriod(period) } : {};
   });
 
+  /** Pre-fills the month on the create-plan page from a month that has no plan yet. */
+  readonly createPlanQueryParams = computed(() => {
+    const period = this.period();
+    return period ? { period: formatPeriodInput(period) } : {};
+  });
+
   /**
    * Donut slices from the backend `percentage` values. The running offset only positions each slice on the ring:
    * nothing here is shown as a total and no budget or percentage is derived from it.
@@ -104,6 +134,8 @@ export class MonthlyPlanPageComponent {
     // can never overwrite a newer one. The page is reused by the router when only `:year/:month` changes.
     combineLatest([this.route.paramMap, this.reloads.pipe(startWith(undefined))])
       .pipe(
+        // A delete belongs to the month it was started on: switching month cancels it and clears its error.
+        tap(() => this.resetDelete()),
         switchMap(([params]) => this.load(parseRoutePeriod(params.get('year'), params.get('month')))),
         takeUntilDestroyed()
       )
@@ -113,6 +145,51 @@ export class MonthlyPlanPageComponent {
   /** Re-runs the GET for the current route params. Only offered from the error state, so it cannot double fire. */
   retry(): void {
     this.reloads.next();
+  }
+
+  /**
+   * Deletes this month's plan and all its expenses after a browser confirmation, then opens the create-plan page
+   * with the month pre-filled so it can be set up again. A 404 means it is already gone and is handled the same way.
+   */
+  deletePlan(): void {
+    const period = this.period();
+    if (this.deleting() || this.status() !== 'ready' || !period) {
+      return;
+    }
+    const label = formatPeriodLabel(period);
+    if (!window.confirm(`Delete the ${label} plan and all its expenses? This cannot be undone.`)) {
+      return;
+    }
+
+    this.deleting.set(true);
+    this.deleteError.set(null);
+    this.deleteSubscription = this.api
+      .deleteMonthlyPlan(period.year, period.month)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => this.openSetup(period),
+        error: (error: AppError) => {
+          if (error.kind === 'not-found') {
+            this.openSetup(period);
+            return;
+          }
+          this.deleting.set(false);
+          this.deleteError.set(error.kind === 'network' ? error.message : DELETE_FAILED_MESSAGE);
+        }
+      });
+  }
+
+  private resetDelete(): void {
+    this.deleteSubscription?.unsubscribe();
+    this.deleteSubscription = null;
+    this.deleting.set(false);
+    this.deleteError.set(null);
+  }
+
+  private openSetup(period: Period): void {
+    void this.router
+      .navigate(['/monthly-planning'], { queryParams: { period: formatPeriodInput(period) } })
+      .finally(() => this.deleting.set(false));
   }
 
   jarColor(jarType: JarType): string {

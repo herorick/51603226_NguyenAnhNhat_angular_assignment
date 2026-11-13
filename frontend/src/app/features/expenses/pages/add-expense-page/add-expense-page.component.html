@@ -1,6 +1,10 @@
-<a class="back-link" routerLink="/dashboard">
+<a class="back-link" [routerLink]="spendingLink() ?? '/monthly-plans'">
   <span aria-hidden="true">‹</span>
-  Back to expenses
+  @if (spendingLink()) {
+    Back to {{ planPeriodLabel() }} spending
+  } @else {
+    Back to all months
+  }
 </a>
 
 <section class="page-intro" aria-labelledby="expense-title">
@@ -16,7 +20,12 @@
     <!-- Always in the DOM so the save announcement fires when the text appears. -->
     <div class="save-result" role="status" aria-live="polite">
       @if (saved(); as result) {
-        <p class="save-success">Expense saved: {{ result.expense.amountVnd | vnd }} to {{ result.expense.jarName }}.</p>
+        <p class="save-success">
+          Expense saved: {{ result.expense.amountVnd | vnd }} to {{ result.expense.jarName }}.
+          @if (savedSpendingLink(); as link) {
+            <a [routerLink]="link">View spending</a>
+          }
+        </p>
       }
     </div>
 
@@ -57,7 +66,7 @@
             <div id="expense-plan-alert" class="form-alert" role="alert">
               <p class="alert-title">Create a monthly plan before adding an expense</p>
               <p>There is no monthly plan for {{ planPeriodLabel() }} yet.</p>
-              <a routerLink="/monthly-planning">Create a plan</a>
+              <a routerLink="/monthly-planning" [queryParams]="createPlanQueryParams()">Create a plan</a>
             </div>
           }
           @case ('error') {
@@ -106,14 +115,19 @@
             inputmode="numeric"
             autocomplete="off"
             placeholder="1,250,000"
+            appVndAmountInput
             formControlName="amountVnd"
             aria-required="true"
             [attr.aria-invalid]="amountError() ? 'true' : null"
-            [attr.aria-describedby]="amountError() ? 'expense-amount-error' : null" />
+            [attr.aria-describedby]="amountError() ? 'expense-amount-error' : 'expense-amount-hint'" />
           <span class="currency-suffix">VND</span>
         </div>
         @if (amountError(); as message) {
           <p id="expense-amount-error" class="field-error" role="alert">{{ message }}</p>
+        } @else {
+          <p id="expense-amount-hint" class="field-hint">
+            {{ amountHint() || 'Whole VND, separators are added as you type.' }}
+          </p>
         }
       </div>
 

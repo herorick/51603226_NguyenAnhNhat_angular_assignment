@@ -1,7 +1,8 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpRequest, provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, TestRequest, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ApplicationRef } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { Subject } from 'rxjs';
@@ -19,9 +20,10 @@ import {
   SPENDING_BY_JARS_FIXTURE,
   VALIDATION_ERROR_FIXTURE
 } from '../../../../testing/fixtures';
+import { MonthExpensesComponent } from '../../components/month-expenses/month-expenses.component';
 import { SpendingByJarPageComponent } from './spending-by-jar-page.component';
 
-const { SPENDING_BY_JARS } = BUDGET_PLAN_ENDPOINTS;
+const { EXPENSES_BY_PERIOD, SPENDING_BY_JARS } = BUDGET_PLAN_ENDPOINTS;
 
 const SEPTEMBER = SPENDING_BY_JARS(2026, 9);
 const OCTOBER = SPENDING_BY_JARS(2026, 10);
@@ -199,6 +201,15 @@ const link = (page: Page, label: string): HTMLAnchorElement => {
 
 const hasLink = (page: Page, label: string): boolean => anchors(page).some((anchor) => text(anchor).includes(label));
 
+const SWITCHER = 'nav[aria-label="Change month"]';
+
+/** The previous / next month link of the month switcher, or null when the switcher hides it. */
+const switcherLink = (page: Page, direction: 'Previous' | 'Next'): HTMLAnchorElement | null =>
+  el(page.root, SWITCHER).querySelector<HTMLAnchorElement>(`a[aria-label^="${direction} month"]`);
+
+/** The expense list below the jars loads on its own (its own spec covers it); every other request is this page's. */
+const isPageRequest = (request: HttpRequest<unknown>): boolean => !request.url.endsWith('/expenses');
+
 const retryButton = (page: Page): HTMLButtonElement => {
   const found = buttons(page).find((button) => text(button) === 'Try again');
   if (!found) {
@@ -303,6 +314,7 @@ describe('SpendingByJarPageComponent', () => {
         provideRouter([
           { path: 'monthly-plans/:year/:month/spending', component: SpendingByJarPageComponent },
           { path: 'monthly-plans/:year/:month', children: [] },
+          { path: 'monthly-plans', children: [] },
           { path: 'monthly-planning', children: [] },
           { path: 'expenses/new', children: [] }
         ]),
@@ -313,6 +325,8 @@ describe('SpendingByJarPageComponent', () => {
   });
 
   afterEach(() => {
+    // The expense list below the jars loads on its own; it has its own spec, so its GET is drained here.
+    TestBed.inject(HttpTestingController).match((request) => request.url.endsWith('/expenses'));
     TestBed.inject(HttpTestingController).verify();
     vi.restoreAllMocks();
   });
@@ -329,7 +343,9 @@ describe('SpendingByJarPageComponent', () => {
       request.flush(SPENDING_BY_JARS_FIXTURE);
       await settle(page);
 
-      page.http.expectNone(() => true);
+      // the only request after the jars arrive is the month's expense list, never one per jar
+      page.http.expectNone(isPageRequest);
+      page.http.expectOne(EXPENSES_BY_PERIOD(2026, 9));
       expect(jarItems(page)).toHaveLength(7);
     });
 
@@ -523,11 +539,11 @@ describe('SpendingByJarPageComponent', () => {
   });
 
   describe('navigation links', () => {
-    it('links back to monthly planning with a decorative chevron', async () => {
+    it('links back to all months with a decorative chevron', async () => {
       const page = await readyPage();
 
-      const back = link(page, 'Back to monthly planning');
-      expect(back.getAttribute('href')).toBe('/monthly-planning');
+      const back = link(page, 'Back to all months');
+      expect(back.getAttribute('href')).toBe('/monthly-plans');
       expect(el(back, 'span').getAttribute('aria-hidden')).toBe('true');
     });
 
@@ -561,13 +577,13 @@ describe('SpendingByJarPageComponent', () => {
       expect(page.router.url).toBe('/expenses/new?expenseDate=2026-09-01');
     });
 
-    it('navigates to monthly planning from the back link', async () => {
+    it('navigates to all months from the back link', async () => {
       const page = await readyPage();
 
-      link(page, 'Back to monthly planning').click();
+      link(page, 'Back to all months').click();
       await settle(page);
 
-      expect(page.router.url).toBe('/monthly-planning');
+      expect(page.router.url).toBe('/monthly-plans');
     });
 
     it('offers the action links while the data is loading', async () => {
@@ -601,6 +617,95 @@ describe('SpendingByJarPageComponent', () => {
     });
   });
 
+  describe('month switcher', () => {
+    it.each([
+      [
+        2026,
+        9,
+        'September 2026',
+        '/monthly-plans/2026/8/spending',
+        'August 2026',
+        '/monthly-plans/2026/10/spending',
+        'October 2026'
+      ],
+      [
+        2026,
+        1,
+        'January 2026',
+        '/monthly-plans/2025/12/spending',
+        'December 2025',
+        '/monthly-plans/2026/2/spending',
+        'February 2026'
+      ],
+      [
+        2026,
+        12,
+        'December 2026',
+        '/monthly-plans/2026/11/spending',
+        'November 2026',
+        '/monthly-plans/2027/1/spending',
+        'January 2027'
+      ]
+    ])(
+      'links %i/%i to the spending of the previous and next month',
+      async (year, month, current, prevHref, prevLabel, nextHref, nextLabel) => {
+        const page = await readyPage(
+          { ...SPENDING_BY_JARS_FIXTURE, year, month },
+          `/monthly-plans/${year}/${month}/spending`,
+          SPENDING_BY_JARS(year, month)
+        );
+
+        const previous = switcherLink(page, 'Previous');
+        const next = switcherLink(page, 'Next');
+        expect(previous?.getAttribute('href')).toBe(prevHref);
+        expect(previous?.getAttribute('aria-label')).toBe(`Previous month, ${prevLabel}`);
+        expect(text(previous)).toBe(`‹ ${prevLabel}`);
+        expect(next?.getAttribute('href')).toBe(nextHref);
+        expect(next?.getAttribute('aria-label')).toBe(`Next month, ${nextLabel}`);
+        expect(text(next)).toBe(`${nextLabel} ›`);
+        expect(text(el(page.root, `${SWITCHER} [aria-current=page]`))).toBe(current);
+      }
+    );
+
+    it('hides the previous-month link at the first month the API accepts', async () => {
+      const page = await readyPage(
+        { ...SPENDING_BY_JARS_FIXTURE, year: 1, month: 1 },
+        '/monthly-plans/1/1/spending',
+        SPENDING_BY_JARS(1, 1)
+      );
+
+      expect(switcherLink(page, 'Previous')).toBeNull();
+      expect(switcherLink(page, 'Next')?.getAttribute('href')).toBe('/monthly-plans/1/2/spending');
+    });
+
+    it('is shown while the spending is loading', async () => {
+      const page = await createPage();
+
+      expect(switcherLink(page, 'Previous')?.getAttribute('href')).toBe('/monthly-plans/2026/8/spending');
+      expect(switcherLink(page, 'Next')?.getAttribute('href')).toBe('/monthly-plans/2026/10/spending');
+
+      page.http.expectOne(SEPTEMBER).flush(SPENDING_BY_JARS_FIXTURE);
+    });
+
+    it.each([
+      ['the plan is missing', fail(404, 'Not Found', NOT_FOUND_ERROR_FIXTURE)],
+      ['the load failed', fail(500, 'Internal Server Error', INTERNAL_ERROR_FIXTURE)]
+    ])('is shown when %s, so the user can try another month', async (_label, respond) => {
+      const page = await failedPage(respond);
+
+      expect(switcherLink(page, 'Previous')?.getAttribute('href')).toBe('/monthly-plans/2026/8/spending');
+      expect(switcherLink(page, 'Next')?.getAttribute('href')).toBe('/monthly-plans/2026/10/spending');
+    });
+
+    it('is not shown for an invalid period, and neither is the back link to all months', async () => {
+      const page = await createPage('/monthly-plans/abc/9/spending');
+      await settle(page);
+
+      expect(page.root.querySelector(SWITCHER)).toBeNull();
+      expect(hasLink(page, 'Back to all months')).toBe(false);
+    });
+  });
+
   describe('read-only view', () => {
     it('has no edit, delete or form controls', async () => {
       const page = await readyPage();
@@ -613,14 +718,42 @@ describe('SpendingByJarPageComponent', () => {
       expect(controls).not.toMatch(/edit|delete|remove/i);
     });
 
-    it('offers only the back link, View plan and Add expense', async () => {
+    it('offers only the back link, the month switcher, View plan and Add expense', async () => {
       const page = await readyPage();
 
       expect(anchors(page).map((anchor) => anchor.getAttribute('href'))).toEqual([
-        '/monthly-planning',
+        '/monthly-plans',
+        '/monthly-plans/2026/8/spending',
+        '/monthly-plans/2026/10/spending',
         '/monthly-plans/2026/9',
         '/expenses/new?expenseDate=2026-09-01'
       ]);
+    });
+  });
+
+  describe('after an expense is edited or deleted', () => {
+    it('refetches the jar totals without dropping back to the loading state', async () => {
+      const page = await readyPage();
+
+      page.component.refreshTotals();
+      render(page);
+
+      expect(text(page.root)).not.toContain(LOADING);
+      expect(jarItems(page)).toHaveLength(7);
+      await answer(page, ok(withJars(patchJar(0, { spentBudgetVnd: '1' }))));
+
+      expectReady(page);
+    });
+
+    it('runs the quiet refresh when the expense list reports a change', async () => {
+      const page = await readyPage();
+      const refresh = vi.spyOn(page.component, 'refreshTotals');
+      const list = page.harness.routeDebugElement?.query(By.directive(MonthExpensesComponent));
+
+      (list?.componentInstance as MonthExpensesComponent).changed.emit();
+
+      expect(refresh).toHaveBeenCalledTimes(1);
+      await answer(page, ok(SPENDING_BY_JARS_FIXTURE));
     });
   });
 
@@ -632,8 +765,8 @@ describe('SpendingByJarPageComponent', () => {
 
       expect(alerts(page)).toHaveLength(1);
       expect(text(alerts(page)[0])).toContain(NOT_FOUND);
-      expect(link(page, 'Create a plan').getAttribute('href')).toBe('/monthly-planning');
-      expect(link(page, 'Back to monthly planning').getAttribute('href')).toBe('/monthly-planning');
+      expect(link(page, 'Create a plan').getAttribute('href')).toBe('/monthly-planning?period=2026-09');
+      expect(link(page, 'Back to all months').getAttribute('href')).toBe('/monthly-plans');
       expect(headings(page, 'h1')).toEqual([TITLE]);
       expect(meta(page)).toBe(SEPTEMBER_META);
       expectNoAmounts(page);
@@ -654,13 +787,46 @@ describe('SpendingByJarPageComponent', () => {
       expect(text(page.root)).not.toContain(NOT_FOUND_ERROR_FIXTURE.message);
     });
 
-    it('navigates to monthly planning from Create a plan', async () => {
+    it('names the missing month on the Create a plan link and offers a way to all months', async () => {
+      const page = await notFoundPage();
+
+      expect(text(link(page, 'Create a plan'))).toBe('Create a plan for September 2026');
+      expect(link(page, 'See all months').getAttribute('href')).toBe('/monthly-plans');
+      expect(els(alerts(page)[0], 'a').map((anchor) => anchor.getAttribute('href'))).toEqual([
+        '/monthly-planning?period=2026-09',
+        '/monthly-plans'
+      ]);
+    });
+
+    it('navigates to monthly planning from Create a plan, carrying the missing month', async () => {
       const page = await notFoundPage();
 
       link(page, 'Create a plan').click();
       await settle(page);
 
-      expect(page.router.url).toBe('/monthly-planning');
+      expect(page.router.url).toBe('/monthly-planning?period=2026-09');
+    });
+
+    it('navigates to all months from See all months', async () => {
+      const page = await notFoundPage();
+
+      link(page, 'See all months').click();
+      await settle(page);
+
+      expect(page.router.url).toBe('/monthly-plans');
+    });
+
+    it.each([
+      ['/monthly-plans/2026/12/spending', 2026, 12, '2026-12', 'December 2026'],
+      ['/monthly-plans/2026/01/spending', 2026, 1, '2026-01', 'January 2026'],
+      ['/monthly-plans/1/1/spending', 1, 1, '0001-01', 'January 1']
+    ])('pre-fills the missing month of %s as ?period=%s on Create a plan', async (url, year, month, query, label) => {
+      const page = await createPage(url);
+      await answer(page, fail(404, 'Not Found', NOT_FOUND_ERROR_FIXTURE), SPENDING_BY_JARS(year, month));
+
+      const create = link(page, 'Create a plan');
+      expect(create.getAttribute('href')).toBe(`/monthly-planning?period=${query}`);
+      expect(text(create)).toBe(`Create a plan for ${label}`);
     });
 
     it.each<[string, Body]>([
@@ -716,7 +882,7 @@ describe('SpendingByJarPageComponent', () => {
     it('keeps the action links in the error state so the user can still leave', async () => {
       const page = await failedPage(fail(500, 'Internal Server Error', INTERNAL_ERROR_FIXTURE));
 
-      expect(link(page, 'Back to monthly planning').getAttribute('href')).toBe('/monthly-planning');
+      expect(link(page, 'Back to all months').getAttribute('href')).toBe('/monthly-plans');
       expect(link(page, 'View plan').getAttribute('href')).toBe('/monthly-plans/2026/9');
     });
 
@@ -995,7 +1161,7 @@ describe('SpendingByJarPageComponent', () => {
       await page.harness.navigateByUrl('/monthly-plans/2026/13/spending', SpendingByJarPageComponent);
       render(page);
 
-      page.http.expectNone(() => true);
+      page.http.expectNone(isPageRequest);
       expect(text(el(page.root, '[role=alert]'))).toContain(INVALID_PERIOD);
       expectNoAmounts(page);
     });
@@ -1043,7 +1209,7 @@ describe('SpendingByJarPageComponent', () => {
       expect(rowSnapshots(page)[1].percent).toBe('0%');
 
       await page.harness.navigateByUrl('/monthly-planning');
-      page.http.expectNone(() => true);
+      page.http.expectNone(isPageRequest);
       // Coming back creates a new page instance, so the host element differs from the first visit.
       const component = await page.harness.navigateByUrl(SEPTEMBER_URL, SpendingByJarPageComponent);
       render(page);

@@ -1,5 +1,5 @@
 <nav class="breadcrumbs" aria-label="Breadcrumb">
-  <a routerLink="/monthly-planning" aria-label="Home">
+  <a routerLink="/" aria-label="Home">
     <svg
       viewBox="0 0 24 24"
       fill="none"
@@ -15,7 +15,7 @@
     </svg>
   </a>
   <span class="breadcrumb-separator" aria-hidden="true">/</span>
-  <a routerLink="/monthly-planning">Monthly planning</a>
+  <a routerLink="/monthly-plans">All months</a>
   <span class="breadcrumb-separator" aria-hidden="true">/</span>
   <span aria-current="page">Create monthly plan</span>
 </nav>
@@ -96,12 +96,16 @@
             inputmode="numeric"
             autocomplete="off"
             placeholder="30,000,000"
+            appVndAmountInput
             formControlName="monthlyIncomeVnd"
             aria-required="true"
             [attr.aria-invalid]="incomeError() ? 'true' : null"
-            [attr.aria-describedby]="incomeError() ? 'income-error' : null" />
+            [attr.aria-describedby]="incomeError() ? 'income-error' : 'income-hint'" />
           <span class="currency-suffix">VND</span>
         </div>
+        @if (!incomeError()) {
+          <p id="income-hint" class="field-hint">{{ incomeHint() || 'Whole VND, separators are added as you type.' }}</p>
+        }
         @if (incomeError()) {
           <p id="income-error" class="field-error" role="alert">{{ incomeError() }}</p>
         }

@@ -1,7 +1,15 @@
 import { FormControl } from '@angular/forms';
 import { describe, expect, it } from 'vitest';
 
-import { isPositiveWholeVnd, isZeroWholeVnd, normalizeVndInput, positiveWholeVndValidator } from './vnd-amount';
+import {
+  caretAfterDigits,
+  describeVndInput,
+  formatVndInput,
+  isPositiveWholeVnd,
+  isZeroWholeVnd,
+  normalizeVndInput,
+  positiveWholeVndValidator
+} from './vnd-amount';
 
 describe('normalizeVndInput', () => {
   it('removes comma grouping', () => {
@@ -134,4 +142,97 @@ describe('positiveWholeVndValidator', () => {
     control.setValue('0');
     expect(control.hasError('positiveVnd')).toBe(true);
   });
+});
+
+describe('formatVndInput', () => {
+  it.each([
+    ['', ''],
+    ['1', '1'],
+    ['999', '999'],
+    ['1000', '1,000'],
+    ['1250000', '1,250,000'],
+    ['25000000', '25,000,000'],
+    ['9223372036854775807', '9,223,372,036,854,775,807']
+  ])('groups the digits of %j as %j', (raw, expected) => {
+    expect(formatVndInput(raw)).toBe(expected);
+  });
+
+  it.each([
+    ['1,250,000', '1,250,000'],
+    ['1,2500', '12,500'],
+    ['1,,000', '1,000'],
+    ['abc12x3', '123'],
+    [' 1 250 000 ', '1,250,000'],
+    ['1.5', '15'],
+    ['-1000', '1,000'],
+    ['１２３', ''],
+    ['abc', '']
+  ])('keeps only ASCII digits and regroups them: %j -> %j', (raw, expected) => {
+    expect(formatVndInput(raw)).toBe(expected);
+  });
+
+  it.each([
+    ['0001250', '1,250'],
+    ['01', '1'],
+    ['0,001', '1'],
+    ['0', '0'],
+    ['000', '0']
+  ])('drops leading zeros but keeps a lone zero: %j -> %j', (raw, expected) => {
+    expect(formatVndInput(raw)).toBe(expected);
+  });
+
+  it('always produces text that normalizeVndInput turns back into the same plain digits', () => {
+    for (const raw of ['1250000', '25,000,000', 'x1000y', '0009999999']) {
+      const formatted = formatVndInput(raw);
+      expect(normalizeVndInput(formatted)).toBe(formatted.replace(/,/g, ''));
+    }
+  });
+
+  it('is idempotent', () => {
+    expect(formatVndInput(formatVndInput('1234567'))).toBe('1,234,567');
+  });
+});
+
+describe('caretAfterDigits', () => {
+  it.each([
+    ['1,250,000', 1, 1],
+    ['1,250,000', 2, 3],
+    ['1,250,000', 4, 5],
+    ['1,250,000', 5, 7],
+    ['1,250,000', 7, 9],
+    ['12,345', 2, 2],
+    ['12,345', 3, 4],
+    ['123', 3, 3]
+  ])('in %j puts the caret after digit %i at index %i', (formatted, digitCount, expected) => {
+    expect(caretAfterDigits(formatted, digitCount)).toBe(expected);
+  });
+
+  it.each([0, -1])('returns 0 for a digit count of %i', (digitCount) => {
+    expect(caretAfterDigits('1,250', digitCount)).toBe(0);
+  });
+
+  it('returns the end of the text when there are fewer digits than asked for', () => {
+    expect(caretAfterDigits('1,250', 9)).toBe(5);
+    expect(caretAfterDigits('', 2)).toBe(0);
+  });
+});
+
+describe('describeVndInput', () => {
+  it.each([
+    ['1000', '≈ 1K VND'],
+    ['1,234', '≈ 1.23K VND'],
+    ['1,250,000', '≈ 1.25M VND'],
+    ['25000000', '≈ 25M VND'],
+    ['  30,000,000  ', '≈ 30M VND'],
+    ['1234567890', '≈ 1.23B VND']
+  ])('describes %j as %j', (raw, expected) => {
+    expect(describeVndInput(raw)).toBe(expected);
+  });
+
+  it.each(['', '  ', '1', '999', '0', '0000', 'abc', '1.5', '-1000', '1,5', '9223372036854775808'])(
+    'is empty for invalid input or amounts below one thousand: %j',
+    (raw) => {
+      expect(describeVndInput(raw)).toBe('');
+    }
+  );
 });

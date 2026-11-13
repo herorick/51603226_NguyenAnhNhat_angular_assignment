@@ -279,3 +279,17 @@ p {
     gap: 1.5rem 1.75rem;
   }
 }
+
+// ── Back link + month switcher row ───────────────────────────
+.page-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 1rem;
+  margin-top: 1.5rem;
+
+  .back-link {
+    margin-top: 0;
+  }
+}

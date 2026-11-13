@@ -2,7 +2,7 @@ import { Component } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router, RouterOutlet } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { FamilyFinanceSidebarComponent } from './family-finance-sidebar.component';
 
@@ -14,6 +14,8 @@ class ShellComponent {}
 
 @Component({ template: '' })
 class StubPageComponent {}
+
+const HOME = '/monthly-plans/2026/9/spending';
 
 describe('FamilyFinanceSidebarComponent', () => {
   let harness: RouterTestingHarness;
@@ -39,6 +41,8 @@ describe('FamilyFinanceSidebarComponent', () => {
   };
 
   beforeEach(async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date(2026, 8, 15));
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
@@ -46,10 +50,13 @@ describe('FamilyFinanceSidebarComponent', () => {
             path: '',
             component: ShellComponent,
             children: [
-              { path: 'dashboard', component: StubPageComponent },
+              { path: 'dashboard', redirectTo: HOME.slice(1) },
               { path: 'monthly-planning', component: StubPageComponent },
+              { path: 'monthly-plans', component: StubPageComponent },
               { path: 'expenses/new', component: StubPageComponent },
+              { path: 'compare', component: StubPageComponent },
               { path: 'monthly-plans/:year/:month', component: StubPageComponent },
+              { path: 'monthly-plans/:year/:month/spending', component: StubPageComponent },
               { path: 'other', component: StubPageComponent }
             ]
           }
@@ -61,6 +68,10 @@ describe('FamilyFinanceSidebarComponent', () => {
     harness.detectChanges();
   });
 
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it('renders a primary navigation landmark', () => {
     const nav = root().querySelector('nav');
 
@@ -68,40 +79,61 @@ describe('FamilyFinanceSidebarComponent', () => {
     expect(nav?.getAttribute('aria-label')).toBe('Primary navigation');
   });
 
-  it('renders exactly three links in order: Home, Planning, Add Expense', () => {
-    expect(links().map((anchor) => anchor.textContent?.trim())).toEqual(['Home', 'Planning', 'Add Expense']);
+  it('renders the four links in order', () => {
+    expect(links().map((anchor) => anchor.textContent?.trim())).toEqual([
+      'Home',
+      'All months',
+      'Create plan',
+      'Add Expense',
+      'Compare'
+    ]);
   });
 
-  it('points each link at its route', () => {
-    expect(linkByText('Home').getAttribute('href')).toBe('/dashboard');
-    expect(linkByText('Planning').getAttribute('href')).toBe('/monthly-planning');
+  it('points each link at its route; Home goes straight to the current month spending (no redirect)', () => {
+    expect(linkByText('Home').getAttribute('href')).toBe(HOME);
+    expect(linkByText('All months').getAttribute('href')).toBe('/monthly-plans');
+    expect(linkByText('Create plan').getAttribute('href')).toBe('/monthly-planning');
     expect(linkByText('Add Expense').getAttribute('href')).toBe('/expenses/new');
+    expect(linkByText('Compare').getAttribute('href')).toBe('/compare');
   });
 
   it('hides decorative icons from assistive technology', () => {
     const icons = root().querySelectorAll('nav .nav-icon');
 
-    expect(icons).toHaveLength(3);
+    expect(icons).toHaveLength(5);
     icons.forEach((icon) => expect(icon.getAttribute('aria-hidden')).toBe('true'));
   });
 
-  it('marks only Planning as the current page on /monthly-planning (text-visible via aria-current, not color only)', () => {
-    expect(activeLabels()).toEqual(['Planning']);
-    expect(linkByText('Planning').classList).toContain('active');
-    expect(linkByText('Home').classList).not.toContain('active');
-    expect(linkByText('Add Expense').classList).not.toContain('active');
+  it('marks only Create plan as the current page on /monthly-planning', () => {
+    expect(activeLabels()).toEqual(['Create plan']);
+    expect(linkByText('Create plan').classList).toContain('active');
     expect(linkByText('Home').hasAttribute('aria-current')).toBe(false);
   });
 
-  it('moves the active item when the route changes', async () => {
+  it('highlights Home on the current month spending page, also when reached through /dashboard', async () => {
+    await navigate(HOME);
+    expect(activeLabels()).toEqual(['Home']);
+
     await navigate('/expenses/new');
     expect(activeLabels()).toEqual(['Add Expense']);
-    expect(linkByText('Planning').classList).not.toContain('active');
-    expect(linkByText('Add Expense').classList).toContain('active');
+
+    await navigate('/compare?months=12');
+    expect(activeLabels()).toEqual(['Compare']);
 
     await navigate('/dashboard');
+    expect(TestBed.inject(Router).url).toBe(HOME);
     expect(activeLabels()).toEqual(['Home']);
-    expect(linkByText('Add Expense').classList).not.toContain('active');
+  });
+
+  it('highlights All months on the overview and on any other month page', async () => {
+    await navigate('/monthly-plans');
+    expect(activeLabels()).toEqual(['All months']);
+
+    await navigate('/monthly-plans/2026/8');
+    expect(activeLabels()).toEqual(['All months']);
+
+    await navigate('/monthly-plans/2026/8/spending');
+    expect(activeLabels()).toEqual(['All months']);
   });
 
   it('marks no item active on a route that is not in the navigation', async () => {
@@ -111,19 +143,12 @@ describe('FamilyFinanceSidebarComponent', () => {
     expect(links().filter((anchor) => anchor.classList.contains('active'))).toHaveLength(0);
   });
 
-  it('does not treat /monthly-plans/:year/:month as the Planning item (different path segment)', async () => {
-    await navigate('/monthly-plans/2026/9');
-
-    expect(linkByText('Planning').classList).not.toContain('active');
-    expect(linkByText('Planning').hasAttribute('aria-current')).toBe(false);
-  });
-
   it('navigates when a link is clicked and updates the active item', async () => {
-    linkByText('Add Expense').click();
+    linkByText('All months').click();
     await harness.fixture.whenStable();
     harness.detectChanges();
 
-    expect(TestBed.inject(Router).url).toBe('/expenses/new');
-    expect(activeLabels()).toEqual(['Add Expense']);
+    expect(TestBed.inject(Router).url).toBe('/monthly-plans');
+    expect(activeLabels()).toEqual(['All months']);
   });
 });

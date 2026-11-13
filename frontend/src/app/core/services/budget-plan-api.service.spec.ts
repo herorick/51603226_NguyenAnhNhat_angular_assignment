@@ -10,7 +10,10 @@ import {
   CreateExpenseResponse,
   CreateMonthlyPlanRequest,
   DefaultJarsResponse,
+  MonthComparisonResponse,
+  MonthlyExpensesResponse,
   MonthlyPlanResponse,
+  MonthlyPlanSummary,
   SpendingByJarsResponse
 } from '../../models/budget-plan.models';
 import {
@@ -20,7 +23,10 @@ import {
   EXPENSE_VALIDATION_ERROR_FIXTURE,
   INTERNAL_ERROR_FIXTURE,
   JAR_NOT_IN_PLAN_ERROR_FIXTURE,
+  MONTHLY_EXPENSES_FIXTURE,
   MONTHLY_PLAN_FIXTURE,
+  MONTH_COMPARISON_FIXTURE,
+  MONTHLY_PLAN_SUMMARIES_FIXTURE,
   NON_CANONICAL_DEFAULT_JARS_FIXTURE,
   NON_CANONICAL_MONTHLY_PLAN_FIXTURE,
   NON_CANONICAL_SPENDING_BY_JARS_FIXTURE,
@@ -605,6 +611,365 @@ describe('BudgetPlanApiService', () => {
       http.expectOne(SEPTEMBER).flush({ ...SPENDING_BY_JARS_FIXTURE, jars: SPENDING_BY_JARS_FIXTURE.jars.slice(0, 1) });
 
       expect(received.map((value) => value.jars.length)).toEqual([7, 1]);
+    });
+  });
+
+  describe('listMonthlyPlans', () => {
+    it('is cold: no request until subscribed', () => {
+      service.listMonthlyPlans();
+
+      http.expectNone(BUDGET_PLAN_ENDPOINTS.PLANS);
+    });
+
+    it('issues one GET to the plans endpoint and passes the 200 body through in response order', () => {
+      const next = vi.fn<(value: MonthlyPlanSummary[]) => void>();
+      const error = vi.fn();
+
+      service.listMonthlyPlans().subscribe({ next, error });
+
+      const call = http.expectOne(BUDGET_PLAN_ENDPOINTS.PLANS);
+      expect(call.request.method).toBe('GET');
+      expect(call.request.urlWithParams).toMatch(/\/api\/v1\/budget-plans$/);
+      expect(call.request.body).toBeNull();
+      call.flush(MONTHLY_PLAN_SUMMARIES_FIXTURE);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(MONTHLY_PLAN_SUMMARIES_FIXTURE);
+      expect(next.mock.calls[0][0].map((plan) => `${plan.year}-${plan.month}`)).toEqual(['2026-11', '2026-9', '2025-12']);
+      expect(next.mock.calls[0][0][1].remainingVnd).toBe('-5000000');
+      expect(error).not.toHaveBeenCalled();
+    });
+
+    it('passes an empty list through', () => {
+      const next = vi.fn<(value: MonthlyPlanSummary[]) => void>();
+
+      service.listMonthlyPlans().subscribe(next);
+      http.expectOne(BUDGET_PLAN_ENDPOINTS.PLANS).flush([]);
+
+      expect(next).toHaveBeenCalledWith([]);
+    });
+
+    it('maps a 500 to a server AppError without the raw body message', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.listMonthlyPlans().subscribe({ error });
+      http
+        .expectOne(BUDGET_PLAN_ENDPOINTS.PLANS)
+        .flush(INTERNAL_ERROR_FIXTURE, { status: 500, statusText: 'Internal Server Error' });
+
+      expect(error).toHaveBeenCalledTimes(1);
+      const appError = error.mock.calls[0][0];
+      expect(appError.kind).toBe('server');
+      expect(appError.status).toBe(500);
+      expect(appError.message).toBe(GENERIC_SERVER_MESSAGE);
+      expect(appError.message).not.toContain(INTERNAL_ERROR_FIXTURE.message);
+    });
+
+    it('maps a network failure to a network AppError and does not retry', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.listMonthlyPlans().subscribe({ error });
+      http.expectOne(BUDGET_PLAN_ENDPOINTS.PLANS).error(new ProgressEvent('error'));
+
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(error.mock.calls[0][0].kind).toBe('network');
+      expect(error.mock.calls[0][0].status).toBe(0);
+      expect(error.mock.calls[0][0].code).toBe('NETWORK_ERROR');
+      http.expectNone(BUDGET_PLAN_ENDPOINTS.PLANS);
+    });
+
+    it('issues a new request on every subscription (no caching)', () => {
+      const plans$ = service.listMonthlyPlans();
+
+      plans$.subscribe();
+      http.expectOne(BUDGET_PLAN_ENDPOINTS.PLANS).flush(MONTHLY_PLAN_SUMMARIES_FIXTURE);
+
+      plans$.subscribe();
+      http.expectOne(BUDGET_PLAN_ENDPOINTS.PLANS).flush([]);
+    });
+  });
+
+  describe('getMonthlyExpenses', () => {
+    const SEPTEMBER = BUDGET_PLAN_ENDPOINTS.EXPENSES_BY_PERIOD(2026, 9);
+
+    it('is cold: no request until subscribed', () => {
+      service.getMonthlyExpenses(2026, 9);
+
+      http.expectNone(SEPTEMBER);
+    });
+
+    it('issues one GET to the period expenses endpoint and passes the 200 body through', () => {
+      const next = vi.fn<(value: MonthlyExpensesResponse) => void>();
+      const error = vi.fn();
+
+      service.getMonthlyExpenses(2026, 9).subscribe({ next, error });
+
+      const call = http.expectOne(SEPTEMBER);
+      expect(call.request.method).toBe('GET');
+      expect(call.request.urlWithParams).toMatch(/\/api\/v1\/budget-plans\/2026\/9\/expenses$/);
+      expect(call.request.body).toBeNull();
+      call.flush(MONTHLY_EXPENSES_FIXTURE);
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(next).toHaveBeenCalledWith(MONTHLY_EXPENSES_FIXTURE);
+      expect(error).not.toHaveBeenCalled();
+    });
+
+    it('builds the URL from the given year and month, so a different period is a different request', () => {
+      service.getMonthlyExpenses(2025, 12).subscribe();
+
+      const call = http.expectOne(BUDGET_PLAN_ENDPOINTS.EXPENSES_BY_PERIOD(2025, 12));
+      expect(call.request.urlWithParams).toMatch(/\/api\/v1\/budget-plans\/2025\/12\/expenses$/);
+      call.flush({ ...MONTHLY_EXPENSES_FIXTURE, year: 2025, month: 12, expenses: [] });
+      http.expectNone(SEPTEMBER);
+    });
+
+    it('maps a 404 to a not-found AppError carrying the MONTHLY_PLAN_NOT_FOUND code', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.getMonthlyExpenses(2026, 9).subscribe({ error });
+      http.expectOne(SEPTEMBER).flush(NOT_FOUND_ERROR_FIXTURE, { status: 404, statusText: 'Not Found' });
+
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(error.mock.calls[0][0]).toEqual({
+        kind: 'not-found',
+        status: 404,
+        code: 'MONTHLY_PLAN_NOT_FOUND',
+        message: NOT_FOUND_ERROR_FIXTURE.message,
+        fieldErrors: []
+      });
+    });
+
+    it('maps a 500 to a server AppError without the raw body message', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.getMonthlyExpenses(2026, 9).subscribe({ error });
+      http.expectOne(SEPTEMBER).flush(INTERNAL_ERROR_FIXTURE, { status: 500, statusText: 'Internal Server Error' });
+
+      const appError = error.mock.calls[0][0];
+      expect(appError.kind).toBe('server');
+      expect(appError.status).toBe(500);
+      expect(appError.message).toBe(GENERIC_SERVER_MESSAGE);
+      expect(appError.message).not.toContain(INTERNAL_ERROR_FIXTURE.message);
+    });
+
+    it('maps a network failure to a network AppError and does not retry', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.getMonthlyExpenses(2026, 9).subscribe({ error });
+      http.expectOne(SEPTEMBER).error(new ProgressEvent('error'));
+
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(error.mock.calls[0][0].kind).toBe('network');
+      expect(error.mock.calls[0][0].code).toBe('NETWORK_ERROR');
+      http.expectNone(SEPTEMBER);
+    });
+
+    it('issues a new request on every subscription (no caching)', () => {
+      const expenses$ = service.getMonthlyExpenses(2026, 9);
+
+      expenses$.subscribe();
+      http.expectOne(SEPTEMBER).flush(MONTHLY_EXPENSES_FIXTURE);
+
+      expenses$.subscribe();
+      http.expectOne(SEPTEMBER).flush(MONTHLY_EXPENSES_FIXTURE);
+    });
+  });
+
+  describe('deleteMonthlyPlan', () => {
+    const SEPTEMBER = BUDGET_PLAN_ENDPOINTS.BY_PERIOD(2026, 9);
+    const DELETE_SEPTEMBER = { method: 'DELETE', url: SEPTEMBER };
+
+    it('is cold: no request until subscribed', () => {
+      service.deleteMonthlyPlan(2026, 9);
+
+      http.expectNone(SEPTEMBER);
+    });
+
+    it('issues one DELETE to the period endpoint with no body and completes on 204', () => {
+      const next = vi.fn();
+      const error = vi.fn();
+      const complete = vi.fn();
+
+      service.deleteMonthlyPlan(2026, 9).subscribe({ next, error, complete });
+
+      const call = http.expectOne(SEPTEMBER);
+      expect(call.request.method).toBe('DELETE');
+      expect(call.request.urlWithParams).toMatch(/\/api\/v1\/budget-plans\/2026\/9$/);
+      expect(call.request.body).toBeNull();
+      call.flush(null, { status: 204, statusText: 'No Content' });
+
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(complete).toHaveBeenCalledTimes(1);
+      expect(error).not.toHaveBeenCalled();
+    });
+
+    it('builds the URL from the given year and month, so a different period is a different request', () => {
+      service.deleteMonthlyPlan(2025, 12).subscribe();
+
+      const call = http.expectOne({ method: 'DELETE', url: BUDGET_PLAN_ENDPOINTS.BY_PERIOD(2025, 12) });
+      expect(call.request.urlWithParams).toMatch(/\/api\/v1\/budget-plans\/2025\/12$/);
+      call.flush(null, { status: 204, statusText: 'No Content' });
+      http.expectNone(SEPTEMBER);
+    });
+
+    it('maps a 404 to a not-found AppError carrying the MONTHLY_PLAN_NOT_FOUND code', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.deleteMonthlyPlan(2026, 9).subscribe({ error });
+      http.expectOne(DELETE_SEPTEMBER).flush(NOT_FOUND_ERROR_FIXTURE, { status: 404, statusText: 'Not Found' });
+
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(error.mock.calls[0][0]).toEqual({
+        kind: 'not-found',
+        status: 404,
+        code: 'MONTHLY_PLAN_NOT_FOUND',
+        message: NOT_FOUND_ERROR_FIXTURE.message,
+        fieldErrors: []
+      });
+    });
+
+    it('maps a 400 to a validation AppError', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.deleteMonthlyPlan(2026, 13).subscribe({ error });
+      http
+        .expectOne({ method: 'DELETE', url: BUDGET_PLAN_ENDPOINTS.BY_PERIOD(2026, 13) })
+        .flush(VALIDATION_ERROR_FIXTURE, { status: 400, statusText: 'Bad Request' });
+
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(error.mock.calls[0][0].kind).toBe('validation');
+      expect(error.mock.calls[0][0].status).toBe(400);
+    });
+
+    it('maps a 500 to a server AppError without the raw body message', () => {
+      const next = vi.fn();
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.deleteMonthlyPlan(2026, 9).subscribe({ next, error });
+      http
+        .expectOne(DELETE_SEPTEMBER)
+        .flush(INTERNAL_ERROR_FIXTURE, { status: 500, statusText: 'Internal Server Error' });
+
+      expect(next).not.toHaveBeenCalled();
+      expect(error).toHaveBeenCalledTimes(1);
+      const appError = error.mock.calls[0][0];
+      expect(appError.kind).toBe('server');
+      expect(appError.status).toBe(500);
+      expect(appError.message).toBe(GENERIC_SERVER_MESSAGE);
+      expect(appError.message).not.toContain(INTERNAL_ERROR_FIXTURE.message);
+    });
+
+    it('maps a network failure to a network AppError and does not retry', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.deleteMonthlyPlan(2026, 9).subscribe({ error });
+      http.expectOne(DELETE_SEPTEMBER).error(new ProgressEvent('error'));
+
+      expect(error).toHaveBeenCalledTimes(1);
+      expect(error.mock.calls[0][0].kind).toBe('network');
+      expect(error.mock.calls[0][0].status).toBe(0);
+      expect(error.mock.calls[0][0].code).toBe('NETWORK_ERROR');
+      http.expectNone(SEPTEMBER);
+    });
+
+    it('issues a new DELETE on every subscription (no caching)', () => {
+      const delete$ = service.deleteMonthlyPlan(2026, 9);
+
+      delete$.subscribe();
+      http.expectOne(DELETE_SEPTEMBER).flush(null, { status: 204, statusText: 'No Content' });
+
+      delete$.subscribe();
+      http.expectOne(DELETE_SEPTEMBER).flush(null, { status: 204, statusText: 'No Content' });
+    });
+  });
+
+  describe('updateExpense', () => {
+    const EXPENSE_11 = BUDGET_PLAN_ENDPOINTS.EXPENSE_BY_ID(11);
+
+    it('is cold: no request until subscribed', () => {
+      service.updateExpense(11, EXPENSE_REQUEST);
+
+      http.expectNone(EXPENSE_11);
+    });
+
+    it('PUTs the request body to the expense endpoint and returns the response', () => {
+      const next = vi.fn<(value: CreateExpenseResponse) => void>();
+
+      service.updateExpense(11, EXPENSE_REQUEST).subscribe({ next });
+
+      const call = http.expectOne({ method: 'PUT', url: EXPENSE_11 });
+      expect(call.request.body).toEqual(EXPENSE_REQUEST);
+      call.flush(CREATE_EXPENSE_RESPONSE_FIXTURE);
+
+      expect(next).toHaveBeenCalledWith(CREATE_EXPENSE_RESPONSE_FIXTURE);
+    });
+
+    it('maps a 400 to a validation AppError with field errors', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.updateExpense(11, EXPENSE_REQUEST).subscribe({ error });
+      http.expectOne(EXPENSE_11).flush(EXPENSE_VALIDATION_ERROR_FIXTURE, { status: 400, statusText: 'Bad Request' });
+
+      expect(error.mock.calls[0][0].kind).toBe('validation');
+      expect(error.mock.calls[0][0].fieldErrors).toEqual(EXPENSE_VALIDATION_ERROR_FIXTURE.errors);
+    });
+  });
+
+  describe('getMonthComparison', () => {
+    it('GETs the comparison with the end month and range as query params', () => {
+      const next = vi.fn<(value: MonthComparisonResponse) => void>();
+
+      service.getMonthComparison(2026, 11, 6).subscribe({ next });
+
+      const call = http.expectOne((request) => request.url === BUDGET_PLAN_ENDPOINTS.COMPARISON);
+      expect(call.request.method).toBe('GET');
+      expect(call.request.urlWithParams).toMatch(/\/api\/v1\/budget-plans\/comparison\?endYear=2026&endMonth=11&months=6$/);
+      call.flush(MONTH_COMPARISON_FIXTURE);
+
+      expect(next).toHaveBeenCalledWith(MONTH_COMPARISON_FIXTURE);
+    });
+
+    it('maps a 400 to a validation AppError', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.getMonthComparison(2026, 13, 6).subscribe({ error });
+      http
+        .expectOne((request) => request.url === BUDGET_PLAN_ENDPOINTS.COMPARISON)
+        .flush(VALIDATION_ERROR_FIXTURE, { status: 400, statusText: 'Bad Request' });
+
+      expect(error.mock.calls[0][0].kind).toBe('validation');
+    });
+  });
+
+  describe('deleteExpense', () => {
+    const EXPENSE_11 = BUDGET_PLAN_ENDPOINTS.EXPENSE_BY_ID(11);
+
+    it('is cold: no request until subscribed', () => {
+      service.deleteExpense(11);
+
+      http.expectNone(EXPENSE_11);
+    });
+
+    it('issues one DELETE with no body and completes on 204', () => {
+      const complete = vi.fn();
+
+      service.deleteExpense(11).subscribe({ complete });
+
+      const call = http.expectOne({ method: 'DELETE', url: EXPENSE_11 });
+      expect(call.request.body).toBeNull();
+      call.flush(null, { status: 204, statusText: 'No Content' });
+
+      expect(complete).toHaveBeenCalledTimes(1);
+    });
+
+    it('maps a 404 to a not-found AppError', () => {
+      const error = vi.fn<(value: AppError) => void>();
+
+      service.deleteExpense(11).subscribe({ error });
+      http.expectOne(EXPENSE_11).flush(NOT_FOUND_ERROR_FIXTURE, { status: 404, statusText: 'Not Found' });
+
+      expect(error.mock.calls[0][0].kind).toBe('not-found');
     });
   });
 });

@@ -1,5 +1,5 @@
 <header class="page-header">
-  <a class="brand" routerLink="/monthly-planning" aria-label="Family Finance home">
+  <a class="brand" [routerLink]="homePath()" aria-label="Family Finance home">
     <span class="brand-mark" aria-hidden="true">
       <svg
         viewBox="0 0 24 24"
@@ -21,11 +21,19 @@
   <span class="header-spacer"></span>
 
   <div class="account-menu">
-    <button type="button" class="account-trigger">
-      <span class="user-name">Family Name</span>
-      <span class="avatar" aria-hidden="true">FN</span>
+    <button
+      #accountTrigger
+      type="button"
+      class="account-trigger"
+      aria-controls="account-menu-panel"
+      [attr.aria-expanded]="menuOpen()"
+      [attr.aria-label]="familyName + ' account menu'"
+      (click)="toggleMenu()">
+      <span class="user-name">{{ familyName }}</span>
+      <span class="avatar" aria-hidden="true">{{ initials }}</span>
       <svg
         class="account-chevron"
+        [class.is-open]="menuOpen()"
         viewBox="0 0 24 24"
         fill="none"
         stroke="currentColor"
@@ -37,5 +45,22 @@
         <path d="m6 9 6 6 6-6" />
       </svg>
     </button>
+
+    <div id="account-menu-panel" class="account-panel" [hidden]="!menuOpen()">
+      <div class="account-summary">
+        <span class="avatar avatar--lg" aria-hidden="true">{{ initials }}</span>
+        <div>
+          <p class="account-name">{{ familyName }}</p>
+          <p class="account-meta">Family budget · VND</p>
+        </div>
+      </div>
+      <ul class="account-links" aria-label="Account shortcuts">
+        <li><a [routerLink]="homePath()" (click)="closeMenu()">This month's spending</a></li>
+        <li><a routerLink="/monthly-plans" (click)="closeMenu()">All months</a></li>
+        <li><a routerLink="/monthly-planning" (click)="closeMenu()">Create monthly plan</a></li>
+        <li><a routerLink="/expenses/new" (click)="closeMenu()">Add expense</a></li>
+        <li><a routerLink="/compare" (click)="closeMenu()">Compare months</a></li>
+      </ul>
+    </div>
   </div>
 </header>

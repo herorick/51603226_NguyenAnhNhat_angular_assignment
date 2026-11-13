@@ -5,7 +5,7 @@ import { TestBed } from '@angular/core/testing';
 import { Router, provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { Subject } from 'rxjs';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { MockInstance, afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { BUDGET_PLAN_ENDPOINTS } from '../../../../constants/api-endpoints';
 import { BudgetPlanApiService } from '../../../../core/services/budget-plan-api.service';
@@ -18,7 +18,7 @@ import {
   NOT_FOUND_ERROR_FIXTURE,
   VALIDATION_ERROR_FIXTURE
 } from '../../../../testing/fixtures';
-import { MonthlyPlanPageComponent } from './monthly-plan-page.component';
+import { DELETE_FAILED_MESSAGE, MonthlyPlanPageComponent } from './monthly-plan-page.component';
 
 const { BY_PERIOD } = BUDGET_PLAN_ENDPOINTS;
 
@@ -188,6 +188,12 @@ const link = (page: Page, label: string): HTMLAnchorElement => {
 const hasLink = (page: Page, label: string): boolean =>
   els<HTMLAnchorElement>(page.root, 'a').some((anchor) => text(anchor).includes(label));
 
+const SWITCHER = 'nav[aria-label="Change month"]';
+
+/** The previous / next month link of the month switcher, or null when the switcher hides it. */
+const switcherLink = (page: Page, direction: 'Previous' | 'Next'): HTMLAnchorElement | null =>
+  el(page.root, SWITCHER).querySelector<HTMLAnchorElement>(`a[aria-label^="${direction} month"]`);
+
 const retryButton = (page: Page): HTMLButtonElement => {
   const found = buttons(page).find((button) => text(button) === 'Try again');
   if (!found) {
@@ -278,6 +284,7 @@ describe('MonthlyPlanPageComponent', () => {
         provideRouter([
           { path: 'monthly-plans/:year/:month/spending', children: [] },
           { path: 'monthly-plans/:year/:month', component: MonthlyPlanPageComponent },
+          { path: 'monthly-plans', children: [] },
           { path: 'monthly-planning', children: [] },
           { path: 'expenses/new', children: [] }
         ]),
@@ -450,11 +457,11 @@ describe('MonthlyPlanPageComponent', () => {
   });
 
   describe('navigation links', () => {
-    it('links back to monthly planning', async () => {
+    it('links back to all months', async () => {
       const page = await readyPage();
 
-      const back = link(page, 'Back to monthly planning');
-      expect(back.getAttribute('href')).toBe('/monthly-planning');
+      const back = link(page, 'Back to all months');
+      expect(back.getAttribute('href')).toBe('/monthly-plans');
       expect(el(back, 'span').getAttribute('aria-hidden')).toBe('true');
     });
 
@@ -479,19 +486,19 @@ describe('MonthlyPlanPageComponent', () => {
       expect(page.router.url).toBe('/monthly-plans/2026/9/spending');
     });
 
-    it('navigates to monthly planning from the back link', async () => {
+    it('navigates to all months from the back link', async () => {
       const page = await readyPage();
 
-      link(page, 'Back to monthly planning').click();
+      link(page, 'Back to all months').click();
       await settle(page);
 
-      expect(page.router.url).toBe('/monthly-planning');
+      expect(page.router.url).toBe('/monthly-plans');
     });
 
     it('offers back navigation while loading and offers no spending or expense links yet', async () => {
       const page = await createPage();
 
-      expect(link(page, 'Back to monthly planning').getAttribute('href')).toBe('/monthly-planning');
+      expect(link(page, 'Back to all months').getAttribute('href')).toBe('/monthly-plans');
       expect(hasLink(page, 'View spending')).toBe(false);
       expect(hasLink(page, 'Add expense')).toBe(false);
 
@@ -501,7 +508,7 @@ describe('MonthlyPlanPageComponent', () => {
     it('offers no spending or expense links when the plan could not be shown', async () => {
       const page = await failedPage(fail(500, 'Internal Server Error', INTERNAL_ERROR_FIXTURE));
 
-      expect(link(page, 'Back to monthly planning').getAttribute('href')).toBe('/monthly-planning');
+      expect(link(page, 'Back to all months').getAttribute('href')).toBe('/monthly-plans');
       expect(hasLink(page, 'View spending')).toBe(false);
       expect(hasLink(page, 'Add expense')).toBe(false);
     });
@@ -528,6 +535,71 @@ describe('MonthlyPlanPageComponent', () => {
     });
   });
 
+  describe('month switcher', () => {
+    it.each([
+      [2026, 9, 'September 2026', '/monthly-plans/2026/8', 'August 2026', '/monthly-plans/2026/10', 'October 2026'],
+      [2026, 1, 'January 2026', '/monthly-plans/2025/12', 'December 2025', '/monthly-plans/2026/2', 'February 2026'],
+      [2026, 12, 'December 2026', '/monthly-plans/2026/11', 'November 2026', '/monthly-plans/2027/1', 'January 2027']
+    ])(
+      'links %i/%i to the previous and next month plan',
+      async (year, month, current, prevHref, prevLabel, nextHref, nextLabel) => {
+        const page = await readyPage(
+          { ...MONTHLY_PLAN_FIXTURE, year, month },
+          `/monthly-plans/${year}/${month}`,
+          BY_PERIOD(year, month)
+        );
+
+        const previous = switcherLink(page, 'Previous');
+        const next = switcherLink(page, 'Next');
+        expect(previous?.getAttribute('href')).toBe(prevHref);
+        expect(previous?.getAttribute('aria-label')).toBe(`Previous month, ${prevLabel}`);
+        expect(text(previous)).toBe(`‹ ${prevLabel}`);
+        expect(next?.getAttribute('href')).toBe(nextHref);
+        expect(next?.getAttribute('aria-label')).toBe(`Next month, ${nextLabel}`);
+        expect(text(next)).toBe(`${nextLabel} ›`);
+        expect(text(el(page.root, `${SWITCHER} [aria-current=page]`))).toBe(current);
+      }
+    );
+
+    it('hides the next-month link at the last month the API accepts', async () => {
+      const page = await readyPage(
+        { ...MONTHLY_PLAN_FIXTURE, year: 9999, month: 12 },
+        '/monthly-plans/9999/12',
+        BY_PERIOD(9999, 12)
+      );
+
+      expect(switcherLink(page, 'Previous')?.getAttribute('href')).toBe('/monthly-plans/9999/11');
+      expect(switcherLink(page, 'Next')).toBeNull();
+    });
+
+    it('is shown while the plan is loading', async () => {
+      const page = await createPage();
+
+      expect(switcherLink(page, 'Previous')?.getAttribute('href')).toBe('/monthly-plans/2026/8');
+      expect(switcherLink(page, 'Next')?.getAttribute('href')).toBe('/monthly-plans/2026/10');
+
+      page.http.expectOne(SEPTEMBER).flush(MONTHLY_PLAN_FIXTURE);
+    });
+
+    it.each([
+      ['the plan is missing', fail(404, 'Not Found', NOT_FOUND_ERROR_FIXTURE)],
+      ['the load failed', fail(500, 'Internal Server Error', INTERNAL_ERROR_FIXTURE)]
+    ])('is shown when %s, so the user can try another month', async (_label, respond) => {
+      const page = await failedPage(respond);
+
+      expect(switcherLink(page, 'Previous')?.getAttribute('href')).toBe('/monthly-plans/2026/8');
+      expect(switcherLink(page, 'Next')?.getAttribute('href')).toBe('/monthly-plans/2026/10');
+    });
+
+    it('is not shown for an invalid period, and neither is the back link to all months', async () => {
+      const page = await createPage('/monthly-plans/abc/9');
+      await settle(page);
+
+      expect(page.root.querySelector(SWITCHER)).toBeNull();
+      expect(hasLink(page, 'Back to all months')).toBe(false);
+    });
+  });
+
   describe('plan not found (TC_F2_001, AC3)', () => {
     it('shows "Monthly plan unavailable" and a Create a plan link, with no amounts', async () => {
       const page = await failedPage(fail(404, 'Not Found', NOT_FOUND_ERROR_FIXTURE));
@@ -535,7 +607,7 @@ describe('MonthlyPlanPageComponent', () => {
       expect(headings(page, 'h1')).toEqual([NOT_FOUND_TITLE]);
       expect(text(el(page.root, '.state-period'))).toBe('September 2026');
       expect(text(page.root)).toContain('There is no monthly plan for this period yet.');
-      expect(link(page, 'Create a plan').getAttribute('href')).toBe('/monthly-planning');
+      expect(link(page, 'Create a plan').getAttribute('href')).toBe('/monthly-planning?period=2026-09');
       expect(alerts(page)).toHaveLength(1);
       expect(text(alerts(page)[0])).toContain(NOT_FOUND_TITLE);
       expectNoAmounts(page);
@@ -550,13 +622,24 @@ describe('MonthlyPlanPageComponent', () => {
       expect(text(page.root)).not.toContain(LOAD_FAILED);
     });
 
-    it('navigates to monthly planning from Create a plan', async () => {
+    it('navigates to monthly planning from Create a plan, carrying the missing month', async () => {
       const page = await failedPage(fail(404, 'Not Found', NOT_FOUND_ERROR_FIXTURE));
 
       link(page, 'Create a plan').click();
       await settle(page);
 
-      expect(page.router.url).toBe('/monthly-planning');
+      expect(page.router.url).toBe('/monthly-planning?period=2026-09');
+    });
+
+    it.each([
+      ['/monthly-plans/2026/12', 2026, 12, '2026-12'],
+      ['/monthly-plans/2026/01', 2026, 1, '2026-01'],
+      ['/monthly-plans/1/1', 1, 1, '0001-01']
+    ])('pre-fills the missing month of %s as ?period=%s on Create a plan', async (url, year, month, query) => {
+      const page = await createPage(url);
+      await answer(page, fail(404, 'Not Found', NOT_FOUND_ERROR_FIXTURE), BY_PERIOD(year, month));
+
+      expect(link(page, 'Create a plan').getAttribute('href')).toBe(`/monthly-planning?period=${query}`);
     });
 
     it.each([
@@ -979,6 +1062,223 @@ describe('MonthlyPlanPageComponent', () => {
       );
       expect(text(el(page.root, '#summary-heading'))).toBe('Total monthly income');
       expect(text(el(page.root, '#jars-heading'))).toBe('The Seven Jars');
+    });
+  });
+
+  describe('deleting the plan', () => {
+    const DELETE_SEPTEMBER = { method: 'DELETE', url: SEPTEMBER };
+    const QUESTION = 'Delete the September 2026 plan and all its expenses? This cannot be undone.';
+    const NO_CONTENT: Respond = (request) => request.flush(null, { status: 204, statusText: 'No Content' });
+
+    let confirm: MockInstance<(message?: string) => boolean>;
+
+    const deleteButton = (page: Page): HTMLButtonElement => el<HTMLButtonElement>(page.root, '.plan-actions button');
+    const deleteError = (page: Page): HTMLElement | null => page.root.querySelector('.delete-error');
+
+    /** Clicks Delete plan with the confirmation accepted and returns the pending DELETE. */
+    const startDelete = (page: Page, url = SEPTEMBER): TestRequest => {
+      confirm.mockReturnValue(true);
+      deleteButton(page).click();
+      render(page);
+      return page.http.expectOne({ method: 'DELETE', url });
+    };
+
+    beforeEach(() => {
+      confirm = vi.spyOn(window, 'confirm').mockReturnValue(false);
+    });
+
+    it('offers an enabled, typed "Delete plan" button next to the ready actions', async () => {
+      const page = await readyPage();
+
+      const button = deleteButton(page);
+      expect(text(button)).toBe('Delete plan');
+      expect(button.type).toBe('button');
+      expect(button.disabled).toBe(false);
+      expect(button.getAttribute('aria-busy')).toBe('false');
+      expect(els(page.root, '.plan-actions > *').map(text)).toEqual(['View spending', 'Add expense', 'Delete plan']);
+      expect(deleteError(page)).toBeNull();
+    });
+
+    it('clears a failed delete error when the user switches to another month', async () => {
+      const page = await readyPage();
+      fail(500, 'Internal Server Error', INTERNAL_ERROR_FIXTURE)(startDelete(page));
+      await settle(page);
+      expect(deleteError(page)).not.toBeNull();
+
+      await page.harness.navigateByUrl('/monthly-plans/2026/10', MonthlyPlanPageComponent);
+      render(page);
+      await answer(page, ok(OCTOBER_PLAN), OCTOBER);
+
+      expect(text(el(page.root, '.income-meta'))).toBe('Monthly plan for October 2026');
+      expect(deleteError(page)).toBeNull();
+      expect(deleteButton(page).disabled).toBe(false);
+    });
+
+    it('cancels an in-flight delete when the user switches month, so it never opens setup for the old month', async () => {
+      const page = await readyPage();
+      const request = startDelete(page);
+
+      await page.harness.navigateByUrl('/monthly-plans/2026/10', MonthlyPlanPageComponent);
+      render(page);
+      expect(request.cancelled).toBe(true);
+      await answer(page, ok(OCTOBER_PLAN), OCTOBER);
+
+      expect(text(deleteButton(page))).toBe('Delete plan');
+      expect(deleteButton(page).disabled).toBe(false);
+      expect(page.router.url).toBe('/monthly-plans/2026/10');
+    });
+
+    it.each<[string, Respond]>([
+      ['not-found', fail(404, 'Not Found', NOT_FOUND_ERROR_FIXTURE)],
+      ['error', fail(500, 'Internal Server Error', INTERNAL_ERROR_FIXTURE)]
+    ])('offers no Delete plan button in the %s state', async (_name, respond) => {
+      const page = await failedPage(respond);
+
+      expect(buttons(page).some((button) => text(button) === 'Delete plan')).toBe(false);
+    });
+
+    it('does nothing when called outside the ready state', async () => {
+      const page = await failedPage(fail(500, 'Internal Server Error', INTERNAL_ERROR_FIXTURE));
+      confirm.mockReturnValue(true);
+
+      page.component.deletePlan();
+      render(page);
+
+      expect(confirm).not.toHaveBeenCalled();
+      page.http.expectNone(DELETE_SEPTEMBER);
+      expect(page.component.deleting()).toBe(false);
+    });
+
+    it('asks for confirmation and sends nothing when it is cancelled', async () => {
+      const page = await readyPage();
+
+      deleteButton(page).click();
+      render(page);
+
+      expect(confirm).toHaveBeenCalledTimes(1);
+      expect(confirm).toHaveBeenCalledWith(QUESTION);
+      page.http.expectNone(DELETE_SEPTEMBER);
+      expect(text(deleteButton(page))).toBe('Delete plan');
+      expect(deleteButton(page).disabled).toBe(false);
+      expect(page.router.url).toBe('/monthly-plans/2026/9');
+      expectReady(page);
+    });
+
+    it('sends one DELETE for the route period and shows "Deleting…" on a disabled, busy button', async () => {
+      const page = await readyPage();
+
+      const request = startDelete(page);
+
+      expect(confirm).toHaveBeenCalledWith(QUESTION);
+      expect(request.request.method).toBe('DELETE');
+      expect(request.request.body).toBeNull();
+      expect(text(deleteButton(page))).toBe('Deleting…');
+      expect(deleteButton(page).disabled).toBe(true);
+      expect(deleteButton(page).getAttribute('aria-busy')).toBe('true');
+      // the plan stays on screen while the delete is in flight
+      expect(jarCards(page)).toEqual(CANONICAL_CARDS);
+
+      request.flush(null, { status: 204, statusText: 'No Content' });
+      await settle(page);
+    });
+
+    it('ignores a second delete while one is in flight', async () => {
+      const page = await readyPage();
+      const request = startDelete(page);
+      confirm.mockClear();
+
+      deleteButton(page).click();
+      page.component.deletePlan();
+      render(page);
+
+      expect(confirm).not.toHaveBeenCalled();
+      page.http.expectNone(DELETE_SEPTEMBER);
+
+      NO_CONTENT(request);
+      await settle(page);
+    });
+
+    it.each<[string, Respond]>([
+      ['204', NO_CONTENT],
+      ['a MONTHLY_PLAN_NOT_FOUND 404 (already deleted)', fail(404, 'Not Found', NOT_FOUND_ERROR_FIXTURE)],
+      ['a bare 404 (already deleted)', fail(404, 'Not Found', null)]
+    ])('on %s opens monthly planning with the deleted month pre-filled', async (_name, respond) => {
+      const page = await readyPage();
+
+      respond(startDelete(page));
+      await settle(page);
+
+      expect(page.router.url).toBe('/monthly-planning?period=2026-09');
+      expect(page.component.deleting()).toBe(false);
+      expect(page.component.deleteError()).toBeNull();
+      page.http.expectNone(() => true);
+    });
+
+    it('pads an early month in the monthly planning link', async () => {
+      const page = await readyPage({ ...MONTHLY_PLAN_FIXTURE, year: 2026, month: 3 }, '/monthly-plans/2026/3', BY_PERIOD(2026, 3));
+
+      NO_CONTENT(startDelete(page, BY_PERIOD(2026, 3)));
+      await settle(page);
+
+      expect(confirm).toHaveBeenCalledWith('Delete the March 2026 plan and all its expenses? This cannot be undone.');
+      expect(page.router.url).toBe('/monthly-planning?period=2026-03');
+    });
+
+    it('on 500 shows the generic delete alert, keeps the plan and re-enables the button', async () => {
+      const page = await readyPage();
+
+      fail(500, 'Internal Server Error', INTERNAL_ERROR_FIXTURE)(startDelete(page));
+      await settle(page);
+
+      const error = deleteError(page);
+      expect(error?.getAttribute('role')).toBe('alert');
+      expect(text(error)).toBe(DELETE_FAILED_MESSAGE);
+      expect(text(page.root)).not.toContain(INTERNAL_ERROR_FIXTURE.message);
+      expect(alerts(page)).toHaveLength(1);
+      expect(text(deleteButton(page))).toBe('Delete plan');
+      expect(deleteButton(page).disabled).toBe(false);
+      expect(deleteButton(page).getAttribute('aria-busy')).toBe('false');
+      expect(page.router.url).toBe('/monthly-plans/2026/9');
+      expect(jarCards(page)).toEqual(CANONICAL_CARDS);
+    });
+
+    it('shows the network message when the server cannot be reached, and re-enables the button', async () => {
+      const page = await readyPage();
+
+      NETWORK_FAILURE(startDelete(page));
+      await settle(page);
+
+      expect(text(deleteError(page))).toBe(NETWORK_FAILED);
+      expect(deleteError(page)?.getAttribute('role')).toBe('alert');
+      expect(deleteButton(page).disabled).toBe(false);
+      expect(page.router.url).toBe('/monthly-plans/2026/9');
+    });
+
+    it('clears the previous error while a new attempt is in flight, then navigates on success', async () => {
+      const page = await readyPage();
+      fail(500, 'Internal Server Error', INTERNAL_ERROR_FIXTURE)(startDelete(page));
+      await settle(page);
+      expect(deleteError(page)).not.toBeNull();
+
+      const retry = startDelete(page);
+
+      expect(deleteError(page)).toBeNull();
+      expect(text(deleteButton(page))).toBe('Deleting…');
+
+      NO_CONTENT(retry);
+      await settle(page);
+
+      expect(page.router.url).toBe('/monthly-planning?period=2026-09');
+    });
+
+    it('cancels an in-flight delete when the page is destroyed and does not navigate', async () => {
+      const page = await readyPage();
+      const request = startDelete(page);
+
+      page.harness.fixture.destroy();
+
+      expect(request.cancelled).toBe(true);
+      expect(page.router.url).toBe('/monthly-plans/2026/9');
     });
   });
 });

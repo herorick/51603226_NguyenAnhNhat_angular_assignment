@@ -77,6 +77,8 @@ const periodInput = (page: Page): HTMLInputElement => el<HTMLInputElement>(page.
 const incomeInput = (page: Page): HTMLInputElement => el<HTMLInputElement>(page.root, '#monthly-income');
 const periodError = (page: Page): HTMLElement | null => page.root.querySelector<HTMLElement>('#period-error');
 const incomeError = (page: Page): HTMLElement | null => page.root.querySelector<HTMLElement>('#income-error');
+const incomeHint = (page: Page): HTMLElement | null => page.root.querySelector<HTMLElement>('#income-hint');
+const INCOME_HINT_DEFAULT = 'Whole VND, separators are added as you type.';
 const statusText = (page: Page): string => text(el(page.root, 'output'));
 /** Text of every `role=alert`; alerts with child elements (message + link/button) join the children with a space. */
 const alerts = (page: Page): string[] =>
@@ -133,9 +135,9 @@ const clickCreate = (page: Page): void => {
   render(page);
 };
 
-const createPage = async (): Promise<Page> => {
+const createPage = async (url = '/monthly-planning'): Promise<Page> => {
   const harness = await RouterTestingHarness.create();
-  const component = await harness.navigateByUrl('/monthly-planning', MonthlyPlanningPageComponent);
+  const component = await harness.navigateByUrl(url, MonthlyPlanningPageComponent);
   harness.detectChanges();
   const root = harness.routeNativeElement;
   if (root === null) {
@@ -165,7 +167,9 @@ describe('MonthlyPlanningPageComponent', () => {
     TestBed.configureTestingModule({
       providers: [
         provideRouter([
+          { path: '', pathMatch: 'full', children: [] },
           { path: 'monthly-planning', component: MonthlyPlanningPageComponent },
+          { path: 'monthly-plans', children: [] },
           { path: 'monthly-plans/:year/:month', children: [] }
         ]),
         provideHttpClient(),
@@ -237,7 +241,131 @@ describe('MonthlyPlanningPageComponent', () => {
       expect(periodInput(page).hasAttribute('aria-invalid')).toBe(false);
       expect(periodInput(page).hasAttribute('aria-describedby')).toBe(false);
       expect(incomeInput(page).hasAttribute('aria-invalid')).toBe(false);
-      expect(incomeInput(page).hasAttribute('aria-describedby')).toBe(false);
+      // The income field always points at its hint while it has no error.
+      expect(incomeInput(page).getAttribute('aria-describedby')).toBe('income-hint');
+      expect(text(incomeHint(page))).toBe(INCOME_HINT_DEFAULT);
+    });
+
+    it('links the breadcrumbs to Home and All months', async () => {
+      const page = await readyPage();
+
+      const links = Array.from(page.root.querySelectorAll<HTMLAnchorElement>('nav[aria-label="Breadcrumb"] a'));
+      expect(links.map((link) => link.getAttribute('href'))).toEqual(['/', '/monthly-plans']);
+      expect(links[0].getAttribute('aria-label')).toBe('Home');
+      expect(text(links[1])).toBe('All months');
+      expect(text(el(page.root, 'nav[aria-label="Breadcrumb"] [aria-current="page"]'))).toBe('Create monthly plan');
+    });
+
+    it('opens All months from the breadcrumb', async () => {
+      const page = await readyPage();
+
+      Array.from(page.root.querySelectorAll<HTMLAnchorElement>('nav[aria-label="Breadcrumb"] a'))
+        .find((link) => text(link) === 'All months')
+        ?.click();
+      await settle(page);
+
+      expect(page.router.url).toBe('/monthly-plans');
+    });
+  });
+
+  describe('?period= prefill', () => {
+    it('pre-fills the month from a valid ?period= and submits it', async () => {
+      const page = await createPage('/monthly-planning?period=2026-11');
+      await flushJars(page);
+
+      expect(periodInput(page).value).toBe('2026-11');
+      expect(page.component.form.controls.period.value).toBe('2026-11');
+      expect(periodError(page)).toBeNull();
+
+      enter(page, incomeInput(page), '20000000');
+      clickCreate(page);
+
+      const request = page.http.expectOne(PLANS);
+      expect(request.request.body).toEqual({ year: 2026, month: 11, monthlyIncomeVnd: '20000000' });
+      flushCreated(request);
+      await settle(page);
+
+      expect(page.router.url).toBe('/monthly-plans/2026/11');
+    });
+
+    it.each(['2026-13', '2026-1', 'not-a-month', ''])('leaves the month empty for ?period=%j', async (value) => {
+      const page = await createPage(`/monthly-planning?period=${value}`);
+      await flushJars(page);
+
+      expect(periodInput(page).value).toBe('');
+      expect(page.component.form.controls.period.value).toBe('');
+      expect(periodError(page)).toBeNull();
+    });
+  });
+
+  describe('income formatting and hint', () => {
+    it('groups typed digits with commas in the field and the form control', async () => {
+      const page = await readyPage();
+
+      enter(page, incomeInput(page), '1250000');
+
+      expect(incomeInput(page).value).toBe('1,250,000');
+      expect(page.component.form.controls.monthlyIncomeVnd.value).toBe('1,250,000');
+    });
+
+    it.each([
+      ['1.250.000', '1,250,000'],
+      [' 30000000 ', '30,000,000'],
+      ['007', '7'],
+      ['0', '0'],
+      ['abc', '']
+    ])('reformats the typed income %j as %j', async (typed, shown) => {
+      const page = await readyPage();
+
+      enter(page, incomeInput(page), typed);
+
+      expect(incomeInput(page).value).toBe(shown);
+      expect(page.component.form.controls.monthlyIncomeVnd.value).toBe(shown);
+    });
+
+    it('shows a compact reading aid for amounts of at least 1,000 and the default hint below that', async () => {
+      const page = await readyPage();
+
+      enter(page, incomeInput(page), '1250000');
+      expect(text(incomeHint(page))).toBe('≈ 1.25M VND');
+      expect(incomeHint(page)?.classList.contains('field-hint')).toBe(true);
+
+      enter(page, incomeInput(page), '30000000');
+      expect(text(incomeHint(page))).toBe('≈ 30M VND');
+
+      enter(page, incomeInput(page), '999');
+      expect(text(incomeHint(page))).toBe(INCOME_HINT_DEFAULT);
+      expect(incomeInput(page).getAttribute('aria-describedby')).toBe('income-hint');
+    });
+
+    it('replaces the hint with the error and points aria-describedby at the error', async () => {
+      const page = await readyPage();
+      enter(page, incomeInput(page), '0');
+
+      blur(page, incomeInput(page));
+
+      expect(incomeHint(page)).toBeNull();
+      expect(text(incomeError(page))).toBe(INCOME_ERROR);
+      expect(incomeInput(page).getAttribute('aria-describedby')).toBe('income-error');
+
+      enter(page, incomeInput(page), '5000');
+
+      expect(incomeError(page)).toBeNull();
+      expect(text(incomeHint(page))).toBe('≈ 5K VND');
+      expect(incomeInput(page).getAttribute('aria-describedby')).toBe('income-hint');
+    });
+
+    it('posts digits only for a typed grouped amount', async () => {
+      const page = await readyPage();
+      fillValid(page, '2026-09', '1250000');
+      expect(incomeInput(page).value).toBe('1,250,000');
+
+      clickCreate(page);
+
+      const request = page.http.expectOne(PLANS);
+      expect(request.request.body).toEqual({ year: 2026, month: 9, monthlyIncomeVnd: '1250000' });
+      flushCreated(request);
+      await settle(page);
     });
   });
 
@@ -380,26 +508,71 @@ describe('MonthlyPlanningPageComponent', () => {
       expect(incomeInput(page).value).toBe('30,000,000');
     });
 
-    it.each(['', '0', '000', '-1', '1.5', 'abc', '1e3', '1,5', '1,0,0', '   ', '9223372036854775808'])(
-      'rejects income %j for a valid month, keeps the typed value and focuses Income',
+    // Typed text goes through appVndAmountInput first (digits only, no leading zeros, grouped), so the field shows the
+    // formatted value and that value is what gets validated.
+    it.each([
+      ['', ''],
+      ['0', '0'],
+      ['000', '0'],
+      ['abc', ''],
+      ['   ', ''],
+      ['9223372036854775808', '9,223,372,036,854,775,808']
+    ])('rejects typed income %j (shown as %j) for a valid month and focuses Income', async (typed, shown) => {
+      const page = await readyPage();
+      fillValid(page, '2026-09', typed);
+
+      clickCreate(page);
+
+      page.http.expectNone(PLANS);
+      expect(text(incomeError(page))).toBe(INCOME_ERROR);
+      expect(incomeInput(page).getAttribute('aria-invalid')).toBe('true');
+      expect(incomeInput(page).getAttribute('aria-describedby')).toBe('income-error');
+      expect(incomeHint(page)).toBeNull();
+      expect(periodError(page)).toBeNull();
+      expect(periodInput(page).hasAttribute('aria-invalid')).toBe(false);
+      expect(statusText(page)).toBe(SUMMARY_ERROR);
+      expect(document.activeElement).toBe(incomeInput(page));
+      expect(incomeInput(page).value).toBe(shown);
+      expect(periodInput(page).value).toBe('2026-09');
+    });
+
+    // Bypasses the input formatting so the validator itself is exercised against malformed text.
+    it.each(['-1', '1.5', 'abc', '1e3', '1,5', '1,0,0', '   ', '000'])(
+      'rejects income %j when it reaches the form control unchanged',
       async (value) => {
         const page = await readyPage();
-        fillValid(page, '2026-09', value);
+        enter(page, periodInput(page), '2026-09');
+        page.component.form.controls.monthlyIncomeVnd.setValue(value);
+        render(page);
 
         clickCreate(page);
 
         page.http.expectNone(PLANS);
         expect(text(incomeError(page))).toBe(INCOME_ERROR);
-        expect(incomeInput(page).getAttribute('aria-invalid')).toBe('true');
-        expect(incomeInput(page).getAttribute('aria-describedby')).toBe('income-error');
-        expect(periodError(page)).toBeNull();
-        expect(periodInput(page).hasAttribute('aria-invalid')).toBe(false);
-        expect(statusText(page)).toBe(SUMMARY_ERROR);
         expect(document.activeElement).toBe(incomeInput(page));
         expect(incomeInput(page).value).toBe(value);
-        expect(periodInput(page).value).toBe('2026-09');
       }
     );
+
+    it.each([
+      ['-1', '1', '1'],
+      ['1.5', '15', '15'],
+      ['1e3', '13', '13'],
+      ['1,5', '15', '15'],
+      ['1,0,0', '100', '100'],
+      ['1.250.000', '1,250,000', '1250000']
+    ])('strips non-digits from typed income %j, shows %j and posts %j', async (typed, shown, posted) => {
+      const page = await readyPage();
+      fillValid(page, '2026-09', typed);
+
+      expect(incomeInput(page).value).toBe(shown);
+      clickCreate(page);
+
+      const request = page.http.expectOne(PLANS);
+      expect(request.request.body).toEqual({ year: 2026, month: 9, monthlyIncomeVnd: posted });
+      flushCreated(request);
+      await settle(page);
+    });
 
     it('shows the Month error on blur, before any submit attempt', async () => {
       const page = await readyPage();
@@ -425,7 +598,8 @@ describe('MonthlyPlanningPageComponent', () => {
       expect(text(incomeError(page))).toBe(INCOME_ERROR);
       expect(incomeError(page)?.getAttribute('role')).toBe('alert');
       expect(incomeInput(page).getAttribute('aria-invalid')).toBe('true');
-      expect(incomeInput(page).value).toBe('abc');
+      // The formatter drops non-digits, so typed "abc" leaves an empty (required) field.
+      expect(incomeInput(page).value).toBe('');
       expect(periodError(page)).toBeNull();
       expect(statusText(page)).toBe('');
       page.http.expectNone(PLANS);

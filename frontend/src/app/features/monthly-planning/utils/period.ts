@@ -63,6 +63,33 @@ export const formatPeriodLabel = (period: Period): string => `${MONTH_NAMES[peri
 export const firstDayOfPeriod = (period: Period): string =>
   `${String(period.year).padStart(4, '0')}-${String(period.month).padStart(2, '0')}-01`;
 
+/** `YYYY-MM`: the `<input type="month">` value for a period, also used as the `?period=` query param. */
+export const formatPeriodInput = (period: Period): string =>
+  `${String(period.year).padStart(4, '0')}-${String(period.month).padStart(2, '0')}`;
+
+/** The local calendar month of `date` (today by default). */
+export const currentPeriod = (date: Date = new Date()): Period => ({
+  year: date.getFullYear(),
+  month: date.getMonth() + 1
+});
+
+/** Moves a period by whole months (`-1` = previous month). Null when the result leaves the API's year range. */
+export const shiftPeriod = (period: Period, months: number): Period | null => {
+  const index = period.year * 12 + (period.month - 1) + months;
+  const year = Math.floor(index / 12);
+  const month = (index % 12) + 1;
+  return year < MIN_YEAR || year > MAX_YEAR ? null : { year, month };
+};
+
+export const isSamePeriod = (a: Period | null, b: Period | null): boolean =>
+  a !== null && b !== null && a.year === b.year && a.month === b.month;
+
+/** Route of the current month's spending page: what "Home" opens, since there is no separate dashboard. */
+export const currentMonthSpendingPath = (date: Date = new Date()): string => {
+  const { year, month } = currentPeriod(date);
+  return `/monthly-plans/${year}/${month}/spending`;
+};
+
 export const periodValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
   const value: unknown = control.value;
   return typeof value === 'string' && parsePeriod(value) ? null : { period: true };

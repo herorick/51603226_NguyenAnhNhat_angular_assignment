@@ -1,8 +1,13 @@
 @if (status() !== 'invalid-period') {
-  <a class="back-link" routerLink="/monthly-planning">
-    <span aria-hidden="true">‹</span>
-    Back to monthly planning
-  </a>
+  <div class="page-nav">
+    <a class="back-link" routerLink="/monthly-plans">
+      <span aria-hidden="true">‹</span>
+      Back to all months
+    </a>
+    @if (period(); as currentPeriod) {
+      <app-month-switcher [period]="currentPeriod" section="spending" />
+    }
+  </div>
 }
 
 <section class="spending-content" aria-labelledby="spending-title">
@@ -73,6 +78,10 @@
           }
         </ul>
       </div>
+
+      @if (period(); as currentPeriod) {
+        <app-month-expenses [period]="currentPeriod" (changed)="refreshTotals()" />
+      }
     }
 
     @case ('not-found') {
@@ -80,7 +89,10 @@
         <div class="state-icon" aria-hidden="true">!</div>
         <p class="state-message">There is no monthly plan for this period yet.</p>
         <div class="state-actions">
-          <a class="btn btn-primary action-link" routerLink="/monthly-planning">Create a plan</a>
+          <a class="btn btn-primary action-link" routerLink="/monthly-planning" [queryParams]="createPlanQueryParams()">
+            Create a plan for {{ periodLabel() }}
+          </a>
+          <a class="btn btn-secondary action-link" routerLink="/monthly-plans">See all months</a>
         </div>
       </div>
     }

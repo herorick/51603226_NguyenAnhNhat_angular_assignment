@@ -12,4 +12,18 @@ describe('BUDGET_PLAN_ENDPOINTS', () => {
       /\/api\/v1\/budget-plans\/2026\/3\/spending-by-jars$/
     );
   });
+
+  it('builds the monthly expenses path from the given year and month', () => {
+    expect(BUDGET_PLAN_ENDPOINTS.EXPENSES_BY_PERIOD(2026, 9)).toMatch(/\/api\/v1\/budget-plans\/2026\/9\/expenses$/);
+    expect(BUDGET_PLAN_ENDPOINTS.EXPENSES_BY_PERIOD(2025, 12)).toMatch(/\/api\/v1\/budget-plans\/2025\/12\/expenses$/);
+    expect(BUDGET_PLAN_ENDPOINTS.EXPENSES_BY_PERIOD(2026, 9)).not.toBe(BUDGET_PLAN_ENDPOINTS.EXPENSES);
+  });
+
+  it('builds the single-expense path used by update and delete', () => {
+    expect(BUDGET_PLAN_ENDPOINTS.EXPENSE_BY_ID(42)).toMatch(/\/api\/v1\/budget-plans\/expenses\/42$/);
+  });
+
+  it('lists plans on the same path the create POST uses', () => {
+    expect(BUDGET_PLAN_ENDPOINTS.PLANS).toMatch(/\/api\/v1\/budget-plans$/);
+  });
 });

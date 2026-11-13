@@ -37,8 +37,14 @@ import {
   MonthlyPlanResponse
 } from '../../../../models/budget-plan.models';
 import { VndPipe } from '../../../../shared/pipes/vnd.pipe';
-import { isZeroWholeVnd, normalizeVndInput, positiveWholeVndValidator } from '../../../../shared/utils/vnd-amount';
-import { Period, formatPeriodLabel } from '../../../monthly-planning/utils/period';
+import { VndAmountInputDirective } from '../../../../shared/directives/vnd-amount-input.directive';
+import {
+  describeVndInput,
+  isZeroWholeVnd,
+  normalizeVndInput,
+  positiveWholeVndValidator
+} from '../../../../shared/utils/vnd-amount';
+import { Period, formatPeriodInput, formatPeriodLabel } from '../../../monthly-planning/utils/period';
 import { isValidMonthlyPlan } from '../../../monthly-planning/utils/plan-shape';
 import {
   MAX_DESCRIPTION_LENGTH,
@@ -104,7 +110,7 @@ const initialExpenseDate = (route: ActivatedRoute): string => {
 
 @Component({
   selector: 'app-add-expense-page',
-  imports: [DecimalPipe, ReactiveFormsModule, RouterLink, VndPipe],
+  imports: [DecimalPipe, ReactiveFormsModule, RouterLink, VndAmountInputDirective, VndPipe],
   templateUrl: './add-expense-page.component.html',
   styleUrl: './add-expense-page.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -214,6 +220,31 @@ export class AddExpensePageComponent {
       return isZeroWholeVnd(normalizeVndInput(control.value)) ? AMOUNT_ZERO_MESSAGE : AMOUNT_ERROR_MESSAGE;
     }
     return this.serverErrors().amountVnd ?? null;
+  });
+
+  /** `≈ 1.25M VND` reading aid under the amount field. */
+  readonly amountHint = computed(() => {
+    this.formEvents();
+    return describeVndInput(this.form.controls.amountVnd.value);
+  });
+
+  /** Spending page of the month the date points at, or null while no valid month is selected. */
+  readonly spendingLink = computed(() => {
+    const view = this.planView();
+    return view.status === 'idle' ? null : `/monthly-plans/${view.period.year}/${view.period.month}/spending`;
+  });
+
+  /** Spending page of the month the last saved expense belongs to (not the month the date field shows now). */
+  readonly savedSpendingLink = computed(() => {
+    const saved = this.saved();
+    const period = saved ? parseExpenseDate(saved.expense.expenseDate) : null;
+    return period ? `/monthly-plans/${period.year}/${period.month}/spending` : null;
+  });
+
+  /** Pre-fills the month on the create-plan page when the selected month has no plan. */
+  readonly createPlanQueryParams = computed(() => {
+    const view = this.planView();
+    return view.status === 'idle' ? {} : { period: formatPeriodInput(view.period) };
   });
 
   readonly descriptionError = computed(() => {
